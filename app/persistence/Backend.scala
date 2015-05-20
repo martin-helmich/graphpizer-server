@@ -1,43 +1,51 @@
 package persistence
 
-import org.neo4j.graphdb.{Transaction, DynamicLabel, Label, Node}
+import org.neo4j.graphdb._
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import play.api.Logger
 
-trait Backend {
+trait BackendInterface {
 
   def createNode: Node
 
   def createLabel(name: String): Label
 
-  def transactional(func: (Transaction) => Unit)
+  def transactional[T](func: (BackendInterface, Transaction) => T): T
 
-  def shutdown
+  def execute(cypher: String): Result
+
+  def shutdown()
 
 }
 
-object Backend extends Backend {
-
-  val graph = new GraphDatabaseFactory() newEmbeddedDatabase "/tmp/graphizer"
+class Backend(graph: GraphDatabaseService) extends BackendInterface {
 
   def createNode = graph.createNode()
 
   def createLabel(name: String) = DynamicLabel label name
 
-  def transactional(func: (Transaction) => Unit) = {
-    val tx = graph beginTx()
+  def transactional[T](func: (BackendInterface, Transaction) => T): T = {
+    val tx = graph.beginTx()
     try {
       Logger.info("Starting Neo4j transaction")
-      func(tx)
+      val result = func(this, tx)
       tx.success()
       Logger.info("Transaction success")
+      return result
     } catch {
       case e: Exception =>
         Logger.error(e.getMessage)
         tx.failure()
+        throw e
+    } finally {
+      tx.close()
     }
   }
 
-  def shutdown = graph.shutdown()
+  def execute(cypher: String) = {
+    graph.execute(cypher)
+  }
+
+  def shutdown() = graph.shutdown()
 
 }

@@ -1,35 +1,39 @@
 package domain.astimport
 
 import akka.actor.{Props, ActorLogging, Actor}
-import controllers.dto.{Edge, Node, ImportRequest}
+import controllers.dto.{Edge, Node, ImportDataSet}
 import org.neo4j.graphdb.DynamicRelationshipType
-import persistence.Backend
+import persistence.{ConnectionManager, Backend}
 
-class NodeImportService(backend: Backend) extends Actor with ActorLogging {
+class NodeImportService extends Actor with ActorLogging {
+
+  case class ImportRequest(project: String, data: ImportDataSet)
+
+  val conn = ConnectionManager
 
 //  val nodeImporters = context.actorOf(Props(classOf[NodeCreator], backend), "create-node")
 
   def receive = {
-    case ImportRequest(nodes, edges) =>
+    case ImportRequest(project, data) =>
       log.info("Received import request")
-      importData(nodes, edges)
+      importData(project, data)
       log.info("Done")
   }
 
-  def importData = (dtos: Seq[Node], edgeDtos: Seq[Edge]) => {
-    backend transactional { t =>
-      val knownNodes = dtos.map { dto =>
-        val node = backend.createNode
+  def importData = (project: String, data: ImportDataSet) => {
+    conn connect project transactional { (b, t) =>
+      log.info("Fuck off, fucking Neo4j!?")
+      val knownNodes = data.nodes.map { dto =>
+        val node = b.createNode
         val id = dto.id
 
-        dto.labels.foreach { l => node.addLabel(backend createLabel l) }
+        dto.labels.foreach { l => node.addLabel(b createLabel l) }
         dto.properties.foreach { case (key, value) => node.setProperty(key, value) }
 
-        log.debug("Imported node " + dto.labels + ", id " + id)
         (id, node)
       }.toMap
 
-      edgeDtos.foreach { dto =>
+      data.edges.foreach { dto =>
         val start = knownNodes(dto.from)
         val end = knownNodes(dto.to)
 

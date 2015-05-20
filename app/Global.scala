@@ -1,11 +1,11 @@
-import persistence.Backend
-import play.api.{Logger, GlobalSettings}
+import persistence.{ConnectionManager, Backend}
+import play.api._
 
 object Global extends GlobalSettings {
 
-  def onStop(app: App): Unit = {
+  override def onStop(app: Application): Unit = {
     Logger.info("Application shutdown")
-    Backend.shutdown
+    ConnectionManager.shutdown()
   }
 
 }
