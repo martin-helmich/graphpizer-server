@@ -10,9 +10,11 @@ trait BackendInterface {
 
   def createLabel(name: String): Label
 
+  def createEdgeType(name: String): RelationshipType
+
   def transactional[T](func: (BackendInterface, Transaction) => T): T
 
-  def execute(cypher: String): Result
+  def execute(cypher: String): Statement
 
   def shutdown()
 
@@ -23,6 +25,8 @@ class Backend(graph: GraphDatabaseService) extends BackendInterface {
   def createNode = graph.createNode()
 
   def createLabel(name: String) = DynamicLabel label name
+
+  def createEdgeType(name: String) = DynamicRelationshipType withName name
 
   def transactional[T](func: (BackendInterface, Transaction) => T): T = {
     val tx = graph.beginTx()
@@ -42,9 +46,7 @@ class Backend(graph: GraphDatabaseService) extends BackendInterface {
     }
   }
 
-  def execute(cypher: String) = {
-    graph.execute(cypher)
-  }
+  def execute(cypher: String) = { new Statement(graph, cypher) }
 
   def shutdown() = graph.shutdown()
 

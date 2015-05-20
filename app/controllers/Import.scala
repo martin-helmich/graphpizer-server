@@ -4,6 +4,7 @@ import javax.inject.{Singleton, Inject}
 import akka.actor.{Props, ActorSystem}
 import controllers.dto._
 import domain.astimport.NodeImportService
+import domain.astimport.NodeImportService.WipeRequest
 import persistence.ConnectionManager
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
@@ -20,6 +21,11 @@ class Import @Inject()(manager: ConnectionManager) extends Controller {
 
   def status(project: String) = Action {
     Ok("OK")
+  }
+
+  def wipe(project: String) = Action { r =>
+    importer ! WipeRequest(project)
+    Accepted("Wiping all nodes")
   }
 
   def importAst(project: String) = Action(BodyParsers.parse.json) { request =>
