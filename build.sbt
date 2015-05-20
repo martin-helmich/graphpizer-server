@@ -14,5 +14,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.neo4j" % "neo4j" % "2.2.1"
+  "org.neo4j" % "neo4j" % "2.2.1",
+  "com.google.inject" % "guice" % "3.0",
+  "javax.inject" % "javax.inject" % "1"
 )

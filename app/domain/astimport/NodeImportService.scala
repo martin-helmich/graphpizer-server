@@ -2,14 +2,11 @@ package domain.astimport
 
 import akka.actor.{Props, ActorLogging, Actor}
 import controllers.dto.{Edge, Node, ImportDataSet}
+import domain.astimport.NodeImportService.ImportRequest
 import org.neo4j.graphdb.DynamicRelationshipType
 import persistence.{ConnectionManager, Backend}
 
-class NodeImportService extends Actor with ActorLogging {
-
-  case class ImportRequest(project: String, data: ImportDataSet)
-
-  val conn = ConnectionManager
+class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogging {
 
 //  val nodeImporters = context.actorOf(Props(classOf[NodeCreator], backend), "create-node")
 
@@ -21,7 +18,7 @@ class NodeImportService extends Actor with ActorLogging {
   }
 
   def importData = (project: String, data: ImportDataSet) => {
-    conn connect project transactional { (b, t) =>
+    manager connect project transactional { (b, t) =>
       log.info("Fuck off, fucking Neo4j!?")
       val knownNodes = data.nodes.map { dto =>
         val node = b.createNode
@@ -45,5 +42,11 @@ class NodeImportService extends Actor with ActorLogging {
       log.info("Imported " + knownNodes.size + " nodes")
     }
   }
+
+}
+
+object NodeImportService {
+
+  case class ImportRequest(project: String, data: ImportDataSet)
 
 }

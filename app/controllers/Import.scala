@@ -1,21 +1,22 @@
 package controllers
 
+import javax.inject.{Singleton, Inject}
 import akka.actor.{Props, ActorSystem}
 import controllers.dto._
 import domain.astimport.NodeImportService
-import persistence.{ConnectionManager, Backend}
+import persistence.ConnectionManager
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.mvc._
 import play.api.libs.functional.syntax._
 
-class BadJsonTypeException extends Exception
+@Singleton
+class Import @Inject()(manager: ConnectionManager) extends Controller {
 
-object Import extends Controller {
+  class BadJsonTypeException extends Exception
 
-  val connectionManager = ConnectionManager
   val system = ActorSystem("NodeImport")
-  val importer = system.actorOf(Props(classOf[NodeImportService], ConnectionManager), name = "import")
+  val importer = system.actorOf(Props(classOf[NodeImportService], manager), name = "import")
 
   def status(project: String) = Action {
     Ok("OK")
@@ -32,8 +33,8 @@ object Import extends Controller {
 
     val mapPrimitiveOrArray: (JsValue) => Any = {
       case JsArray(values) =>
-        if (values forall { case JsString(_) => true }) {
-          values.map { case JsString(s) => s }.toArray[String]
+        if (values forall { case JsString(_) => true case _ => false }) {
+          values.map { case JsString(s) => s case _ => "" }.toArray[String]
         } else {
           throw new BadJsonTypeException
         }
@@ -57,7 +58,7 @@ object Import extends Controller {
               case e: BadJsonTypeException => JsError(__, ValidationError("validate.error.badtype"))
               case _: Exception => JsError(__, ValidationError("validate.error.unknown"))
             }
-          case t => JsError( __, ValidationError("validate.error.badtype", t))
+          case t => JsError(__, ValidationError("validate.error.badtype", t))
         }
       }
     }
@@ -86,7 +87,7 @@ object Import extends Controller {
         BadRequest(JsError.toFlatJson(errors))
       },
       request => {
-        importer ! request
+        importer ! new NodeImportService.ImportRequest(project, request)
         Accepted("Started node import")
       }
     )

@@ -1,5 +1,7 @@
 package controllers
 
+import javax.inject.{Inject, Singleton}
+
 import org.neo4j.graphdb.Node
 import persistence.{ConnectionManager, Backend}
 import play.api._
@@ -9,13 +11,12 @@ import collection.JavaConversions._
 import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-object Package extends Controller {
-
-  val connManager = ConnectionManager
+@Singleton
+class Package @Inject() (manager: ConnectionManager) extends Controller {
 
   def list(project: String) = Action.async {
     val future = Future {
-      connManager connect project transactional { (b, t) =>
+      manager connect project transactional { (b, t) =>
         val result = b.execute("MATCH (p:File) RETURN p")
         val nodes: Iterator[Node] = result.columnAs[Node]("p")
 

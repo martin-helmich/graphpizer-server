@@ -1,13 +1,15 @@
 package persistence
 
+import javax.inject.{Inject, Singleton}
+
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import scala.collection.mutable
 
-object ConnectionManager {
+@Singleton
+class ConnectionManager @Inject() (factory: GraphDatabaseFactory) {
 
-  val basePath = "/tmp/graphizer"
-  val connections = mutable.Map[String, BackendInterface]()
-  val factory = new GraphDatabaseFactory()
+  protected val basePath = "/tmp/graphizer"
+  protected val connections = mutable.Map[String, BackendInterface]()
 
   def connect(name: String): BackendInterface = {
     connections get name match {
