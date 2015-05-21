@@ -2,6 +2,7 @@ package persistence
 
 import org.neo4j.graphdb._
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
+import org.neo4j.graphdb.traversal.TraversalDescription
 import play.api.Logger
 
 trait BackendInterface {
@@ -15,6 +16,8 @@ trait BackendInterface {
   def transactional[T](func: (BackendInterface, Transaction) => T): T
 
   def execute(cypher: String): Statement
+
+  def traversal: TraversalDescription
 
   def shutdown()
 
@@ -38,13 +41,15 @@ class Backend(graph: GraphDatabaseService) extends BackendInterface {
       return result
     } catch {
       case e: Exception =>
-        Logger.error(e.getMessage)
+        Logger.error(e.getMessage, e)
         tx.failure()
         throw e
     } finally {
       tx.close()
     }
   }
+
+  def traversal: TraversalDescription = graph.traversalDescription()
 
   def execute(cypher: String) = { new Statement(graph, cypher) }
 
