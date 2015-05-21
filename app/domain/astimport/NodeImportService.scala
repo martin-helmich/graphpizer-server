@@ -25,21 +25,25 @@ class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogg
   def importData = (project: String, data: ImportDataSet) => {
     manager connect project transactional { (b, t) =>
       val knownNodes = data.nodes.map { dto =>
-        if (dto.merge getOrElse false) {
-          val params = Map("__node_id" -> dto.id)
-          val res = b execute "MERGE (n {__node_id: {node}} RETURN n" runWith params
+        dto.merge match {
+          case Some(true) =>
+            val labels = dto.labels mkString ":"
+            val properties = dto.properties map { case (key, value) => key + ": {node}." + key } mkString ", "
+            val params = Map("node" -> dto.properties)
 
-          val nodes: Iterator[graphdb.Node] = res.columnAs[graphdb.Node]("n")
-//          nodes map { node =>  } TODO: Continue here!
+            val res = b execute s"MERGE (n:$labels  {$properties}) RETURN n" runWith params
+
+            val nodes: Iterator[graphdb.Node] = res.columnAs[graphdb.Node]("n")
+            val arr = nodes.toArray
+            (dto.id, arr(0))
+          case _ =>
+            val node = b.createNode
+
+            dto.labels.foreach { l => node.addLabel(b createLabel l) }
+            dto.properties.foreach { case (key, value) => node.setProperty(key, value) }
+
+            (dto.id, node)
         }
-
-        val node = b.createNode
-        val id = dto.id
-
-        dto.labels.foreach { l => node.addLabel(b createLabel l) }
-        dto.properties.foreach { case (key, value) => node.setProperty(key, value) }
-
-        (id, node)
       }.toMap
 
       data.edges.foreach { dto =>
