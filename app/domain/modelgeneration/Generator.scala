@@ -1,9 +1,19 @@
 package domain.modelgeneration
 
-class Generator(namespaceResolver: NamespaceResolver) {
+import domain.modelgeneration.Generator.RunOptions
 
-  def run() = {
+class Generator(namespaceResolver: NamespaceResolver,
+                classResolver: ClassResolver) {
+
+  def run(options: RunOptions) = {
     namespaceResolver.run()
+    classResolver.run()
   }
+
+}
+
+object Generator {
+
+  case class RunOptions(withUsage: Boolean, withTypeInference: Boolean)
 
 }

@@ -10,7 +10,8 @@ class GeneratorFactory @Inject() (manager: ConnectionManager) {
   def forProject(name: String): Generator = {
     val backend = manager connect name
     new Generator(
-      new NamespaceResolver(backend)
+      new NamespaceResolver(backend),
+      new ClassResolver(backend)
     )
   }
 }

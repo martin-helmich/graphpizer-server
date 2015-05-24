@@ -5,9 +5,10 @@ import akka.event.LoggingReceive
 import controllers.dto.{Edge, Node, ImportDataSet}
 import domain.astimport.NodeImportService.{WipeRequest, ImportRequest}
 import org.neo4j.graphdb
-import org.neo4j.graphdb.DynamicRelationshipType
+import org.neo4j.graphdb._
 import persistence.{ConnectionManager, Backend}
 import scala.collection.JavaConversions._
+import persistence.NodeWrappers._
 
 class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogging {
 
@@ -37,10 +38,10 @@ class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogg
             val arr = nodes.toArray
             (dto.id, arr(0))
           case _ =>
-            val node = b.createNode
+            val node = b.createNode()
 
             dto.labels.foreach { l => node.addLabel(b createLabel l) }
-            dto.properties.foreach { case (key, value) => node.setProperty(key, value) }
+            dto.properties.foreach { case (key, value) => node(key) = value }
 
             (dto.id, node)
         }
@@ -50,8 +51,10 @@ class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogg
         val start = knownNodes(dto.from)
         val end = knownNodes(dto.to)
 
-        val rel = start createRelationshipTo(end, b createEdgeType dto.label)
-        dto.properties.foreach { case (key, value) => rel.setProperty(key, value) }
+        val rel: Relationship = start --| dto.label |--> end <
+
+//        val rel = start createRelationshipTo(end, b createEdgeType dto.label)
+        dto.properties.foreach { case (key, value) => rel(key) = value }
       }
 
       log.info("Imported " + knownNodes.size + " nodes")

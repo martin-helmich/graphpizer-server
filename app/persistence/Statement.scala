@@ -9,23 +9,53 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
 
   val logger = Logger("cypher-statement")
 
+  protected var params: Map[String, AnyRef] = null
+
   def run(): Result = {
     logger.info(s"Executing cypher statement $cypher")
-    val result = graph.execute(cypher)
+    val result = if (params != null) graph.execute(cypher, params) else graph.execute(cypher)
     logger.info(s"Done")
     result
   }
 
   def runWith(params: Map[String, AnyRef]): Result = graph.execute(cypher, mapAsJavaMap[String, AnyRef](params))
 
-  def foreach[X](m: (X) => Unit): Unit = {
+//  def convertColumn[T <: Node](no: Integer, columns: java.util.List[String], row: java.util.Map[String, AnyRef]) = {
+//    new Node(row.get(columns(no)).asInstanceOf[org.neo4j.graphdb.Node])
+//  }
+
+  def params(p: Map[String, AnyRef]): Statement = {
+    params = p
+    this
+  }
+
+  def convertColumn[T](no: Integer, columns: java.util.List[String], row: java.util.Map[String, AnyRef]) = {
+    row.get(columns(no)).asInstanceOf[T]
+  }
+
+  def map[X, T](m: (X) => T): Seq[T] = {
+    val result = run()
+    val columns = result.columns()
+    try {
+      var resultset = Seq[T]()
+      while (result.hasNext) {
+        val row = result.next()
+        val p = convertColumn[X](0, columns, row)
+        resultset = resultset :+ m(p)
+      }
+      return resultset
+    } finally {
+      result.close()
+    }
+  }
+
+  def foreach[X](m: (X) => _): Unit = {
     val result = run()
     val columns = result.columns()
     try {
       while (result.hasNext) {
         val row = result.next()
-
-        val p = row.get(columns(0)).asInstanceOf[X]
+        val p = convertColumn[X](0, columns, row)
         m(p)
       }
     } finally {
@@ -33,15 +63,14 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
     }
   }
 
-  def foreach[X, Y](m: (X, Y) => Unit): Unit = {
+  def foreach[X, Y](m: (X, Y) => _): Unit = {
     val result = run()
     val columns = result.columns()
     try {
       while (result.hasNext) {
         val row = result.next()
-
-        val x = row.get(columns(0)).asInstanceOf[X]
-        val y = row.get(columns(1)).asInstanceOf[Y]
+        val x = convertColumn[X](0, columns, row)
+        val y = convertColumn[Y](1, columns, row)
         m(x, y)
       }
     } finally {
@@ -49,16 +78,15 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
     }
   }
 
-  def foreach[X, Y, Z](m: (X, Y, Z) => Unit): Unit = {
+  def foreach[X, Y, Z](m: (X, Y, Z) => _): Unit = {
     val result = run()
     val columns = result.columns()
     try {
       while (result.hasNext) {
         val row = result.next()
-
-        val x = row.get(columns(0)).asInstanceOf[X]
-        val y = row.get(columns(1)).asInstanceOf[Y]
-        val z = row.get(columns(2)).asInstanceOf[Z]
+        val x = convertColumn[X](0, columns, row)
+        val y = convertColumn[Y](1, columns, row)
+        val z = convertColumn[Z](2, columns, row)
         m(x, y, z)
       }
     } finally {

@@ -7,7 +7,10 @@ import play.api.Logger
 
 trait BackendInterface {
 
-  def createNode: Node
+  def nodes: NodeRepository
+
+  def createNode(labels: String*): Node
+  def createNode(label: Label, moreLabels: Label*): Node
 
   def createLabel(name: String): Label
 
@@ -25,7 +28,21 @@ trait BackendInterface {
 
 class Backend(graph: GraphDatabaseService) extends BackendInterface {
 
-  def createNode = graph.createNode()
+  protected val nodeRepository = new NodeRepository(this)
+
+  def createNode(labelNames: String*): Node = {
+    val node = graph.createNode()
+    labelNames map { createLabel } foreach { node.addLabel }
+    return node
+  }
+
+  def createNode(label: Label, moreLabels: Label*): Node = {
+    val node = graph.createNode(label)
+    moreLabels foreach { node.addLabel }
+    return node
+  }
+
+  def nodes = { nodeRepository }
 
   def createLabel(name: String) = DynamicLabel label name
 

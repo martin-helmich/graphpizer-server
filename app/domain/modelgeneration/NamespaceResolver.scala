@@ -1,14 +1,17 @@
 package domain.modelgeneration
 
-import org.neo4j.graphdb.traversal.{Uniqueness, Evaluation, Evaluator, Evaluators}
-import org.neo4j.graphdb.{Path, Direction, Node}
+import domain.model.AstEdgeType._
+import org.neo4j.graphdb.traversal.{Evaluation, Evaluator, Uniqueness}
+import org.neo4j.graphdb.{Direction, Node, Path}
 import persistence.BackendInterface
 import play.api.Logger
-import scala.concurrent.{Await, Future}
-import language.postfixOps
+
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.language.postfixOps
+import persistence.NodeWrappers._
 
 class NamespaceResolver(backend: BackendInterface) {
 
@@ -39,8 +42,8 @@ class NamespaceResolver(backend: BackendInterface) {
       val label = backend createLabel "Name"
       val evaluator = new Evaluator {
         override def evaluate(path: Path): Evaluation = {
-          if (path.endNode().hasLabel(label)) {
-            Evaluation.of(!path.endNode().hasProperty("fullName"), false)
+          if (path.end ? label) {
+            Evaluation.of(!(path.endNode ? "fullName"), false)
           } else Evaluation.of(false, true)
         }
       }
@@ -48,29 +51,27 @@ class NamespaceResolver(backend: BackendInterface) {
       val cypher = """MATCH          (ns:Stmt_Namespace)
                       OPTIONAL MATCH (ns)-[:SUB {type: "stmts"}]->(s)-->(:Stmt_Use)-->()-->(u:Stmt_UseUse)
                       RETURN ns, collect(u) AS imports"""
-      val edgeSub = backend createEdgeType "SUB"
-      val edgeHas = backend createEdgeType "HAS"
       val traversal = backend
         .traversal
         .depthFirst()
-        .relationships(edgeSub, Direction.OUTGOING)
-        .relationships(edgeHas, Direction.OUTGOING)
+        .relationships(SUB, Direction.OUTGOING)
+        .relationships(HAS, Direction.OUTGOING)
         .evaluator(evaluator)
         .uniqueness(Uniqueness.NODE_GLOBAL)
 
       b execute cypher foreach { (ns: Node, imports: java.util.List[Node]) =>
-        val namespaceName = (ns getProperty "name").asInstanceOf[String]
-        val knownImports = imports map { p => (p getProperty "alias", p getProperty "name") } toMap
+        val namespaceName = ns("name").get.asInstanceOf[String]
+        val knownImports = imports map { p => (p("alias"), p("name")) } toMap
 
-        ns getRelationships(edgeSub, Direction.OUTGOING) filter { r =>
-          r.getProperty("type") match { case "stmts" => true case _ => false }
+        ns >--> SUB filter { r =>
+          r("type") match { case Some("stmts") => true case _ => false }
         } map { _.getEndNode } foreach { root =>
 
-          traversal traverse root map { _.endNode } filter { _ hasProperty "allParts" } foreach { nameNode =>
-            val name = (nameNode getProperty "allParts").asInstanceOf[String]
+          traversal traverse root map { _.endNode } filter { _ ? "allParts" } foreach { nameNode =>
+            val name = nameNode("allParts").get.asInstanceOf[String]
             knownImports get name match {
-              case Some(s: String) => nameNode.setProperty("fullName", s)
-              case _ => nameNode.setProperty("fullName", s"$namespaceName\\$name")
+              case Some(s: String) => nameNode("fullName") = s
+              case _ => nameNode("fullName") = s"$namespaceName\\$name"
             }
           }
 
