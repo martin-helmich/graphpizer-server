@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 
 object AstLabelType extends Enumeration {
   type LabelType = Value
-  val Name = Value
+  val Name, Scalar_String, Scalar_LNumber, Scalar_DNumber, Expr_Array, Expr_ConstFetch = Value
 
   implicit def conv(l: LabelType): Label = new Label {
     override def name(): String = l.toString

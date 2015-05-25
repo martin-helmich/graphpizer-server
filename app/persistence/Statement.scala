@@ -29,7 +29,7 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
     this
   }
 
-  def convertColumn[T](no: Integer, columns: java.util.List[String], row: java.util.Map[String, AnyRef]) = {
+  def convertColumn[T](no: Integer, columns: java.util.List[String], row: java.util.Map[String, AnyRef]): T = {
     row.get(columns(no)).asInstanceOf[T]
   }
 
@@ -37,13 +37,17 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
     val result = run()
     val columns = result.columns()
     try {
-      var resultset = Seq[T]()
-      while (result.hasNext) {
-        val row = result.next()
-        val p = convertColumn[X](0, columns, row)
-        resultset = resultset :+ m(p)
-      }
-      return resultset
+      result.toArray map { convertColumn[X](0, columns, _) } map m
+    } finally {
+      result.close()
+    }
+  }
+
+  def filter[X](m: (X) => Boolean): Seq[X] = {
+    val result = run()
+    val columns = result.columns()
+    try {
+      result.toArray map { convertColumn[X](0, columns, _) } filter m
     } finally {
       result.close()
     }

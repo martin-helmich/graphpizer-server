@@ -1,6 +1,9 @@
 package persistence
 
+import domain.model.AstLabelType
+import domain.model.AstNodeTypes._
 import org.neo4j.graphdb._
+import play.api.Logger
 import scala.collection.JavaConversions._
 
 object NodeWrappers {
@@ -62,7 +65,11 @@ object NodeWrappers {
                                           relationship: Relationship = null) extends RelationshipBuilder {
 
       def |-->(node: Node): BuiltRelationship = {
-        val rel = source.createRelationshipTo(node, relationshipType)
+        val rels = source >--> relationshipType filter { _.end.equals(node) }
+        val rel = rels.size match {
+          case 0 => source createRelationshipTo (node, relationshipType)
+          case _ => rels.head
+        }
         new BuiltRelationshipImpl(rel)
       }
 
@@ -81,7 +88,7 @@ object NodeWrappers {
 
     def update[T](name: String, value: T) = underlyingNode.setProperty(name, value)
 
-    def update[T](name: String, value: Option[T]) = value match {
+    def update[T <: AnyRef](name: String, value: Option[T]) = value match {
       case Some(v: T) => underlyingNode.setProperty(name, v)
       case _ =>
     }
@@ -95,11 +102,9 @@ object NodeWrappers {
       case _ => None
     }
 
-    def id: Long = underlyingNode.getId
+    def ![T <: AnyRef](name: String): T = underlyingNode.getProperty(name).asInstanceOf[T]
 
-    //    def property[T](name: String): T = {
-    //      underlyingNode.getProperty(name).asInstanceOf[T]
-    //    }
+    def id: Long = underlyingNode.getId
 
     def --|(relationshipType: RelationshipType): RelationshipBuilder = {
       new RelationshipBuilderImpl(relationshipType, underlyingNode)
@@ -116,6 +121,20 @@ object NodeWrappers {
 
     def >-->(relationshipType: RelationshipType): Iterable[Relationship] = {
       underlyingNode getRelationships(relationshipType, Direction.OUTGOING)
+    }
+
+    def unbox: AstNode = {
+      val firstLabel = underlyingNode.getLabels.toArray.head.name
+      firstLabel match {
+        case "Expr_ConstFetch" => Expr_ConstFetch(underlyingNode ! "name")
+        case "Expr_Array" => Expr_Array()
+        case "Scalar_DNumber" => Scalar_DNumber(underlyingNode ! "value")
+        case "Scalar_LNumber" => Scalar_LNumber(underlyingNode ! "value")
+        case "Scalar_String" => Scalar_String(underlyingNode ! "value")
+        case _ =>
+          Logger.warn(s"Unknown node label ${firstLabel}")
+          Unknown()
+      }
     }
 
   }
