@@ -5,7 +5,7 @@ import persistence.Query
 case class DataType(name: String, primitive: Boolean, collection: Boolean = false, inner: DataType = null) {
 
   def slug = {
-    name.toLowerCase.replace("\\", "_").replace("<", "-").replace(">", "")
+    name.toLowerCase.replace("\\", "-").replace("<", "--").replace(">", "")
   }
 
   def query = {

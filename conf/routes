@@ -16,11 +16,13 @@ GET         /projects/:project/packages             @controllers.Package.list(pr
 GET         /projects/:project/files                @controllers.File.list(project: String)
 
 # Model generation
-POST        /projects/:project/model/generate       @controllers.Model.generate(project: String)
-GET         /projects/:project/model/classes        @controllers.Classes.list(project: String)
-GET         /projects/:project/model/classes/:clazz @controllers.Classes.show(project: String, clazz: String)
-GET         /projects/:project/model/types          @controllers.Types.list(project: String)
-GET         /projects/:project/model/types/:typ     @controllers.Types.show(project: String, typ: String)
+POST        /projects/:project/model/generate          @controllers.Model.generate(project: String)
+GET         /projects/:project/model/classes           @controllers.Classes.list(project: String)
+GET         /projects/:project/model/classes/:clazz    @controllers.Classes.show(project: String, clazz: String)
+GET         /projects/:project/model/interfaces        @controllers.Interfaces.list(project: String)
+GET         /projects/:project/model/interfaces/:iface @controllers.Interfaces.show(project: String, iface: String)
+GET         /projects/:project/model/types             @controllers.Types.list(project: String)
+GET         /projects/:project/model/types/:typ        @controllers.Types.show(project: String, typ: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                           controllers.Assets.at(path="/public", file)

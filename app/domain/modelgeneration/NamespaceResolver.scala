@@ -40,12 +40,10 @@ class NamespaceResolver(backend: BackendInterface) {
       b.execute("MATCH (ns:Stmt_Namespace)-[:SUB {type: \"name\"}]->(name) SET name.fullName = name.allParts").run().close()
 
       val label = backend createLabel "Name"
-      val evaluator = new Evaluator {
-        override def evaluate(path: Path): Evaluation = {
-          if (path.end ? label) {
-            Evaluation.of(!(path.endNode ? "fullName"), false)
-          } else Evaluation.of(false, true)
-        }
+      val evaluator = (path: Path) => {
+        if (path.end ? label) {
+          (!(path.endNode ? "fullName"), false)
+        } else (false, true)
       }
 
       val cypher = """MATCH          (ns:Stmt_Namespace)

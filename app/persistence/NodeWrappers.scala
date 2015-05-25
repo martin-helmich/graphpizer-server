@@ -3,6 +3,7 @@ package persistence
 import domain.model.AstLabelType
 import domain.model.AstNodeTypes._
 import org.neo4j.graphdb._
+import org.neo4j.graphdb.traversal.{Evaluation, Evaluator}
 import play.api.Logger
 import scala.collection.JavaConversions._
 
@@ -45,10 +46,12 @@ object NodeWrappers {
 
     trait BuiltRelationship {
       def < : Relationship
+      def >> : Node
     }
 
     trait RelationshipBuilder {
       def |-->(node: Node): BuiltRelationship
+      def |-->(l: Label): BuiltRelationship
 
       def -->(n: Node): BuiltRelationship
 
@@ -57,12 +60,18 @@ object NodeWrappers {
 
     private class BuiltRelationshipImpl(relationship: Relationship) extends BuiltRelationship {
       def < = relationship
+      def >> = relationship.end
     }
 
     private class RelationshipBuilderImpl(relationshipType: RelationshipType,
                                           source: Node,
                                           props: Map[String, AnyRef] = null,
                                           relationship: Relationship = null) extends RelationshipBuilder {
+
+      def |-->(l: Label): BuiltRelationship = {
+        val node = source.getGraphDatabase.createNode(l)
+        |-->(node)
+      }
 
       def |-->(node: Node): BuiltRelationship = {
         val rels = source >--> relationshipType filter { _.end.equals(node) }
@@ -137,6 +146,15 @@ object NodeWrappers {
       }
     }
 
+  }
+
+  implicit def EvaluatorWrapper(e: (Path) => Tuple2[Boolean, Boolean]): Evaluator = {
+    new Evaluator {
+      override def evaluate(path: Path): Evaluation = {
+        val r = e(path)
+        Evaluation.of(r._1, r._2)
+      }
+    }
   }
 
 }

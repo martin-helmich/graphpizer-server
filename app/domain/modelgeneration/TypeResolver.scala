@@ -6,8 +6,8 @@ import play.api.Logger
 
 class TypeResolver {
 
-  def resolveType(typename: String, context: ImportContext): DataType = {
-    val primitive = (n: String) => DataType(n, primitive = true)
+  def resolveType(typename: String, context: ImportContext): Option[DataType] = {
+    val primitive = (n: String) => Some(DataType(n, primitive = true))
 
     val collection = """^(.+)\[\]$""".r
     val nested = """^(.+)<(.+)>$""".r
@@ -18,21 +18,23 @@ class TypeResolver {
       case "bool"|"boolean" => primitive("boolean")
       case "float"|"double"|"decimal" => primitive("double")
       case "void"|"null"|"nil" => primitive("null")
-      case "array" => DataType("array", primitive = true, collection = true)
+      case "array" => Some(DataType("array", primitive = true, collection = true))
       case "callable" => primitive("callable")
       case "object" => primitive("object")
-      case "mixed" => null
+      case "mixed" => None
       case nested(outer, inner) =>
-        val innerType = resolveType (inner, context)
-        println(s"$outer<${innerType.name}>")
-        DataType(s"$outer<${innerType.name}>", primitive = innerType.primitive, collection = true, inner = innerType)
+        resolveType (inner, context) match {
+          case Some(d: DataType) => Some(DataType(s"$outer<${d.name}>", primitive = d.primitive, collection = true, inner = d))
+          case _ => Some(DataType("array", primitive = true, collection = true))
+        }
       case collection(inner) =>
-        val innerType = resolveType (inner, context)
-        println(s"array<${innerType.name}>")
-        DataType(s"array<${innerType.name}>", primitive = innerType.primitive, collection = true, inner = innerType)
+        resolveType (inner, context) match {
+          case Some(d: DataType) => Some(DataType(s"array<${d.name}>", primitive = d.primitive, collection = true, inner = d))
+          case _ => Some(DataType("array", primitive = true, collection = true))
+        }
       case s: String =>
-        DataType(context resolveImportedName (s stripPrefix "\\"), primitive = false)
-      case unknown => Logger.warn("Unknown type: " + unknown); null
+        Some(DataType(context resolveImportedName (s stripPrefix "\\"), primitive = false))
+      case unknown => Logger.warn("Unknown type: " + unknown); None
     }
   }
 
