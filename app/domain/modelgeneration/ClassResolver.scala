@@ -67,10 +67,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         }
 
         clazz --| DEFINED_IN |--> classStmt
-
-        val typeNode = mergeDataType(DataType(fqcn, primitive = false))
-
-        typeNode --| IS |--> clazz
+        mergeDataType(DataType(fqcn, primitive = false)) --| IS |--> clazz
 
         val context = new ImportContextImpl(clazz, clazz.property[String]("namespace"))
 
