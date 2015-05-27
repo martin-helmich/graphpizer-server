@@ -97,5 +97,22 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
       result.close()
     }
   }
+  def foreach[X, Y, Z, X1, Y1](m: (X, Y, Z, X1, Y1) => _): Unit = {
+    val result = run()
+    val columns = result.columns()
+    try {
+      result foreach { (row) =>
+        m(
+          convertColumn[X](0, columns, row),
+          convertColumn[Y](1, columns, row),
+          convertColumn[Z](2, columns, row),
+          convertColumn[X1](3, columns, row),
+          convertColumn[Y1](4, columns, row)
+        )
+      }
+    } finally {
+      result.close()
+    }
+  }
 
 }
