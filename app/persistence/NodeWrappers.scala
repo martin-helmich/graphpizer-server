@@ -93,7 +93,7 @@ object NodeWrappers {
       }
     }
 
-    def apply(name: String) = property[AnyRef](name)
+    def apply[T <: AnyRef](name: String) = property[T](name)
 
     def update[T](name: String, value: T) = underlyingNode.setProperty(name, value)
 

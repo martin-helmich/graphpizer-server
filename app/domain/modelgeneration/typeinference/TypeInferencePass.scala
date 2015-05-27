@@ -1,10 +1,12 @@
 package domain.modelgeneration.typeinference
 
-import org.neo4j.graphdb.{DynamicRelationshipType, Node}
+import domain.mapper.TypeMapper
+import domain.model.ModelEdgeType._
+import org.neo4j.graphdb.Node
 import persistence.BackendInterface
 import persistence.NodeWrappers._
 
-class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, maxIterationCount: Integer = 10) {
+class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMapper: TypeMapper, maxIterationCount: Integer = 10) {
 
   protected var affected = -1
   protected var iter = 0
@@ -24,21 +26,34 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, maxIter
                             (classStmt)<-[:DEFINED_IN]-(class)<-[:IS]-(type)
                       OPTIONAL MATCH (method)<-[:DEFINED_IN]-()-[:HAS_PARAMETER]->(param)
                       RETURN method, classStmt, class, type, collect(param) AS parameters"""
-      val innerCypher = """MATCH (c)-[:SUB|HAS*]->(var:Expr_Variable) WHERE id(c)={node} RETURN var"""
+      val variableCypher = """MATCH (c)-[:SUB|HAS*]->(var:Expr_Variable) WHERE id(c)={node} RETURN var"""
+      val assignmentCypher = """MATCH (m)-[:SUB|HAS*]->(assignment:Expr_Assign)
+                                         -[:SUB{type: "var"}]->(var:Expr_Variable)
+                                         -[:POSSIBLE_TYPE]->(type)
+                                WHERE id(m)={node}
+                                RETURN var, collect(type) AS types"""
 
-      backend execute cypher foreach { (method: Node, classStmt: Node, klass: Node, datatype: Node, parameters: Seq[Node]) =>
+      backend execute cypher foreach { (method: Node, classStmt: Node, klass: Node, klassType: Node, parameters: Seq[Node]) =>
         val symbolTable = symbols
-          .scope(klass.property[String]("fqcn").get)
-          .scope(method.property[String]("name").get)
+          .scope(klass("fqcn").get)
+          .scope(method("name").get)
 
-        backend execute innerCypher params Map("node" -> Long.box(klass.id)) foreach { (variable: Node) =>
-          symbolTable.addSymbol(variable.property[String]("name").get)
+        backend execute variableCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node) =>
+          symbolTable.addSymbol(variable("name").get)
         }
 
-//        symbolTable.addTypeForSymbol()
+        symbolTable.addTypeForSymbol("this", typeMapper.mapNodeToType(klassType))
 
-        parameters filter { symbolTable hasSymbol _.property[String]("name").get } foreach { p =>
-          p.createRelationshipTo(method, DynamicRelationshipType.withName("HAS_FOO"))
+        parameters filter { symbolTable hasSymbol _("name").get } foreach { p =>
+          p >--> POSSIBLE_TYPE foreach { t =>
+            symbolTable.addTypeForSymbol(p("name").get, typeMapper.mapNodeToType(t.end))
+          }
+        }
+
+        backend execute assignmentCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node, types: Seq[Node]) =>
+          types foreach { t =>
+            symbolTable.addTypeForSymbol(variable("name").get, typeMapper.mapNodeToType(t))
+          }
         }
       }
     }
