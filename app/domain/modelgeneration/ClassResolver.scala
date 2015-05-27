@@ -84,20 +84,20 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
 
       backend.execute("""MATCH (sub:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "extends"}]->(ename)
                          MATCH (super:Class) WHERE super.fqcn=ename.fullName
-                         MERGE (sub)-[:EXTENDS]->(super)""").run()
+                         MERGE (sub)-[:EXTENDS]->(super)""").run().close()
       backend.execute("""MATCH (c:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "implements"}]->()-[:HAS]->(iname)
                          MATCH (i:Interface) WHERE i.fqcn=iname.fullName
-                         MERGE (c)-[:IMPLEMENTS]->(i)""").run()
+                         MERGE (c)-[:IMPLEMENTS]->(i)""").run().close()
       backend.execute("""MATCH (c:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "stmts"}]->()-[:HAS]->(:Stmt_TraitUse)-[:SUB {type: "traits"}]->()-[:HAS]->(tname)
                          MATCH (t:Trait) WHERE t.fqcn = tname.fullName
-                         MERGE (c)-[:USES_TRAIT]->(t)""").run()
+                         MERGE (c)-[:USES_TRAIT]->(t)""").run().close()
 
       backend.execute("""MATCH (m:Method)<-[:HAS_METHOD]-()-[:IMPLEMENTS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name
-                         MERGE (m)-[:IMPLEMENTS_METHOD]->(s)""").run()
+                         MERGE (m)-[:IMPLEMENTS_METHOD]->(s)""").run().close()
       backend.execute("""MATCH (m:Method)<-[:HAS_METHOD]-()-[:EXTENDS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name AND m.abstract=true
-                         MERGE (m)-[:IMPLEMENTS_METHOD]->(s)""").run()
+                         MERGE (m)-[:IMPLEMENTS_METHOD]->(s)""").run().close()
       backend.execute("""MATCH (m:Method)<-[:HAS_METHOD]-()-[:EXTENDS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name AND m.abstract=false
-                         MERGE (m)-[:OVERRIDES_METHOD]->(s)""").run()
+                         MERGE (m)-[:OVERRIDES_METHOD]->(s)""").run().close()
     }
   }
 
