@@ -1,6 +1,6 @@
 package domain.modelgeneration.typeinference
 
-import org.neo4j.graphdb.Node
+import org.neo4j.graphdb.{DynamicRelationshipType, Node}
 import persistence.BackendInterface
 import persistence.NodeWrappers._
 
@@ -24,10 +24,22 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, maxIter
                             (classStmt)<-[:DEFINED_IN]-(class)<-[:IS]-(type)
                       OPTIONAL MATCH (method)<-[:DEFINED_IN]-()-[:HAS_PARAMETER]->(param)
                       RETURN method, classStmt, class, type, collect(param) AS parameters"""
+      val innerCypher = """MATCH (c)-[:SUB|HAS*]->(var:Expr_Variable) WHERE id(c)={node} RETURN var"""
+
       backend execute cypher foreach { (method: Node, classStmt: Node, klass: Node, datatype: Node, parameters: Seq[Node]) =>
         val symbolTable = symbols
           .scope(klass.property[String]("fqcn").get)
           .scope(method.property[String]("name").get)
+
+        backend execute innerCypher params Map("node" -> Long.box(klass.id)) foreach { (variable: Node) =>
+          symbolTable.addSymbol(variable.property[String]("name").get)
+        }
+
+//        symbolTable.addTypeForSymbol()
+
+        parameters filter { symbolTable hasSymbol _.property[String]("name").get } foreach { p =>
+          p.createRelationshipTo(method, DynamicRelationshipType.withName("HAS_FOO"))
+        }
       }
     }
 

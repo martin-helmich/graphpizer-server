@@ -19,7 +19,7 @@ class SymbolTable {
     }
   }
 
-  def addSymbol(name: String, types: Seq[DataType]): Unit = {
+  def addSymbol(name: String, types: Seq[DataType] = Seq()): Unit = {
     val set = setForSymbol(name)
     types foreach { set += _ }
   }
