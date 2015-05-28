@@ -1,9 +1,10 @@
 package domain.modelgeneration.typeinference
 
+import domain.mapper.TypeMapper
 import persistence.BackendInterface
 import play.api.Logger
 
-class TypeResolver(backend: BackendInterface) {
+class TypeInferer(backend: BackendInterface, typeMapper: TypeMapper) {
 
   val logger = Logger
 
@@ -33,7 +34,7 @@ class TypeResolver(backend: BackendInterface) {
                          MERGE (var)-[:POSSIBLE_TYPE {confidence: 1}]->(type)""").run().close()
 
       val symbols = new SymbolTable()
-      val pass = new TypeInferencePass(backend, symbols)
+      val pass = new TypeInferencePass(backend, symbols, typeMapper)
 
       do {
         pass.pass()
@@ -41,6 +42,7 @@ class TypeResolver(backend: BackendInterface) {
       } while (!pass.done)
 
       logger.info(s"Type inference passed after ${pass.iterationCount} passes")
+      symbols.dump { s => logger.info(s) }
     }
   }
 

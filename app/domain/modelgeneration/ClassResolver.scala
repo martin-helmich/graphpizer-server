@@ -40,8 +40,8 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case _ => classRelations(0)
         }
 
-        val fqcn = (namespaceStmt("name"), classStmt("name")) match {
-          case (Some(namespace), Some(name)) => namespace + "\\" + name
+        val fqcn = (namespaceStmt.property[String]("name"), classStmt.property[String]("name")) match {
+          case (Some(namespace: String), Some(name: String)) => namespace + "\\" + name
           case _ => classStmt.property[String]("name").get
         }
 
@@ -49,12 +49,12 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
 
         clazz("name") = classStmt("name")
         clazz("slug") = fqcn.toLowerCase.replace("\\", "-")
-        clazz("abstract") = classStmt("type") match {
-          case Some(a: Integer) => (a & 16) > 0
+        clazz("abstract") = classStmt.property[Int]("type") match {
+          case Some(a: Int) => (a & 16) > 0
           case _ => false
         }
-        clazz("final") = classStmt("type") match {
-          case Some(a: Integer) => (a & 32) > 0
+        clazz("final") = classStmt.property[Int]("type") match {
+          case Some(a: Int) => (a & 32) > 0
           case _ => false
         }
 
@@ -101,7 +101,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
   protected def extractPropertiesForClass(classStmt: Node, clazz: Node, context: ImportContext) = {
     val existingDefinitions = (clazz >--> HAS_PROPERTY map {
       _.end
-    } map { prop => (prop("name").get, prop) }).toMap
+    } map { prop => (prop.property[String]("name").get, prop) }).toMap
     val cypher = """MATCH (cls)-[:SUB|HAS*]->(outer:Stmt_Property)-->()-->(inner:Stmt_PropertyProperty) WHERE id(cls)={id}
                     OPTIONAL MATCH (inner)-[:SUB {type: "default"}]->(default)
                     RETURN outer, inner, default"""
@@ -114,8 +114,8 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         case _ => (clazz --| HAS_PROPERTY |--> Property).>>
       }
 
-      val typemap: Int = outer("type") match {
-        case Some(a: Integer) => a
+      val typemap = outer.property[Int]("type") match {
+        case Some(a: Int) => a
         case _ => 0
       }
 
@@ -144,7 +144,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         }
       }
 
-      outer("docComment") match {
+      outer.property[String]("docComment") match {
         case Some(s: String) =>
           docCommentParser.parse(s).variable match {
             case Some(VarTag(dataTypeName, _)) =>
@@ -173,8 +173,8 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         case _ => (clazz --| HAS_METHOD |--> Method).>>
       }
 
-      val typemap: Int = methodStmt("type") match {
-        case Some(a: Integer) => a
+      val typemap: Int = methodStmt.property[Int]("type") match {
+        case Some(a: Int) => a
         case _ => 0
       }
 
@@ -188,7 +188,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
 
       methodNode --| DEFINED_IN |--> methodStmt
 
-      val methodDocComment = methodStmt("docComment") match {
+      val methodDocComment = methodStmt.property[String]("docComment") match {
         case Some(s: String) => docCommentParser.parse(s)
         case _ => new DocComment()
       }
@@ -260,9 +260,11 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
   protected def mergeDataType(datatype: DataType): Node = {
     val typenode = backend.nodes.merge(datatype.query)
 
-    if (datatype.inner != null) {
-      val inner = mergeDataType(datatype.inner)
-      typenode --| COLLECTION_OF |--> inner
+    datatype.inner match {
+      case Some(t: DataType) =>
+        val inner = mergeDataType(t)
+        typenode --| COLLECTION_OF |--> inner
+      case _ =>
     }
 
     typenode

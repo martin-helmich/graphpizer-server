@@ -1,6 +1,7 @@
 package domain.modelgeneration.typeinference
 
 import domain.model.DataType
+import play.api.Logger
 
 import scala.collection.mutable
 
@@ -49,6 +50,20 @@ class SymbolTable {
         val set = mutable.Set[DataType]()
         symbols += (name -> set)
         set
+    }
+  }
+
+  def dump(logger: (String) => Unit, indent: Int = 0): Unit = {
+    logger("  " * indent + "Sub-Scopes:")
+    scopes foreach { case (n, t) =>
+      logger("  " * indent + s"  $n")
+      t.dump(logger, indent + 2)
+    }
+
+    logger("  " * indent + "Known symbols")
+    symbols foreach { case (n, ts) =>
+      logger("  " * indent + "  " + n + ":")
+        ts foreach { t => logger("  " * indent + "    " + t)}
     }
   }
 

@@ -24,12 +24,12 @@ class TypeResolver {
       case "mixed" => None
       case nested(outer, inner) =>
         resolveType (inner, context) match {
-          case Some(d: DataType) => Some(DataType(s"$outer<${d.name}>", primitive = d.primitive, collection = true, inner = d))
+          case Some(d: DataType) => Some(DataType(s"$outer<${d.name}>", primitive = d.primitive, collection = true, inner = Some(d)))
           case _ => Some(DataType("array", primitive = true, collection = true))
         }
       case collection(inner) =>
         resolveType (inner, context) match {
-          case Some(d: DataType) => Some(DataType(s"array<${d.name}>", primitive = d.primitive, collection = true, inner = d))
+          case Some(d: DataType) => Some(DataType(s"array<${d.name}>", primitive = d.primitive, collection = true, inner = Some(d)))
           case _ => Some(DataType("array", primitive = true, collection = true))
         }
       case s: String =>

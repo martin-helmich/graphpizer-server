@@ -5,6 +5,7 @@ import domain.model.ModelEdgeType._
 import org.neo4j.graphdb.Node
 import persistence.BackendInterface
 import persistence.NodeWrappers._
+import scala.collection.JavaConversions._
 
 class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMapper: TypeMapper, maxIterationCount: Integer = 10) {
 
@@ -33,7 +34,7 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
                                 WHERE id(m)={node}
                                 RETURN var, collect(type) AS types"""
 
-      backend execute cypher foreach { (method: Node, classStmt: Node, klass: Node, klassType: Node, parameters: Seq[Node]) =>
+      backend execute cypher foreach { (method: Node, classStmt: Node, klass: Node, klassType: Node, parameters: java.util.List[Node]) =>
         val symbolTable = symbols
           .scope(klass("fqcn").get)
           .scope(method("name").get)
@@ -50,9 +51,11 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
           }
         }
 
-        backend execute assignmentCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node, types: Seq[Node]) =>
+        backend execute assignmentCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node, types: java.util.List[Node]) =>
           types foreach { t =>
-            symbolTable.addTypeForSymbol(variable("name").get, typeMapper.mapNodeToType(t))
+            variable.property[String]("name") foreach {
+              symbolTable.addTypeForSymbol(_, typeMapper.mapNodeToType(t))
+            }
           }
         }
       }

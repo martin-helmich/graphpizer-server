@@ -30,8 +30,8 @@ class TypeMapper {
 
     DataType(
       n.property[String]("name").get,
-      n.property[Boolean]("primitive").get,
-      n.property[Boolean]("collection").get,
+      n.property[Boolean]("primitive").getOrElse(true),
+      n.property[Boolean]("collection").getOrElse(false),
       innerType
     )
   }

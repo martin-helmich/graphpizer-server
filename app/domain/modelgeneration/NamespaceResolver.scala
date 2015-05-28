@@ -59,7 +59,7 @@ class NamespaceResolver(backend: BackendInterface) {
 
       b execute cypher foreach { (ns: Node, imports: java.util.List[Node]) =>
         val namespaceName = ns("name").get.asInstanceOf[String]
-        val knownImports = imports map { p => (p("alias"), p("name")) } toMap
+        val knownImports = imports map { p => (p.property[String]("alias").get, p.property[String]("name").get) } toMap
 
         ns >--> SUB filter { r =>
           r("type") match { case Some("stmts") => true case _ => false }
