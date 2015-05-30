@@ -20,6 +20,7 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
       propagateExprTypeByAssignment()
       propagateExprTypeByMethodCallResult()
       propagateExprTypeByPropertyFetch()
+      propagateExprTypeByBinaryOperation()
       propagateMethodTypeByReturnStatement()
       propagatePropertyTypeByAssignment()
 
@@ -135,6 +136,21 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
                        -[:IS]->(propClass)
                        -[:HAS_PROPERTY|EXTENDS*]->(assignedProperty:Property{name: propFetch.name})
              MERGE (assignedProperty)-[:POSSIBLE_TYPE]->(assignedType)""")
+  }
+
+  protected def propagateExprTypeByBinaryOperation(): Unit = {
+    query("""MATCH (op)
+                       -[:SUB{type: "left"}]->(left)-[:POSSIBLE_TYPE]->(leftType{name: "integer"}),
+                   (op)-[:SUB{type:"right"}]->(right)-[:POSSIBLE_TYPE]->(rightType{name: "integer"})
+                 WHERE (op:Expr_BinaryOp_Minus OR Expr_BinaryOp_Plus OR Expr_BinaryOp_Mod OR Expr_BinaryOp_Mul OR Expr_BinaryOp_Pow)
+             MATCH (t:Type {name: "integer"})
+             MERGE (op)-[:POSSIBLE_TYPE]->(t)""")
+    query("""MATCH (op:Expr_BinaryOp_Minus)
+                       -[:SUB{type: "left"}]->(left)-[:POSSIBLE_TYPE]->(leftType{name: "double"}),
+                   (op)-[:SUB{type:"right"}]->(right)-[:POSSIBLE_TYPE]->(rightType{name: "double"})
+                 WHERE (op:Expr_BinaryOp_Minus OR Expr_BinaryOp_Plus OR Expr_BinaryOp_Mod OR Expr_BinaryOp_Mul OR Expr_BinaryOp_Pow)
+             MATCH (t:Type {name: "double"})
+             MERGE (op)-[:POSSIBLE_TYPE]->(t)""")
   }
 
 }

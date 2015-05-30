@@ -5,7 +5,8 @@ import domain.modelgeneration.typeinference.TypeInferer
 
 class Generator(namespaceResolver: NamespaceResolver,
                 classResolver: ClassResolver,
-                typeInferer: TypeInferer) {
+                typeInferer: TypeInferer,
+                usageAnalyzer: UsageAnalyzer) {
 
   def run(options: RunOptions) = {
     namespaceResolver.run()
@@ -13,6 +14,10 @@ class Generator(namespaceResolver: NamespaceResolver,
 
     if (options.withTypeInference) {
       typeInferer.run()
+    }
+
+    if (options.withUsage) {
+      usageAnalyzer.run()
     }
   }
 
