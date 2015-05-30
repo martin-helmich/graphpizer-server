@@ -25,4 +25,4 @@ GET         /projects/:project/model/types             @controllers.Types.list(p
 GET         /projects/:project/model/types/:typ        @controllers.Types.show(project: String, typ: String)
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /assets/*file                           controllers.Assets.at(path="/public", file)
+GET         /assets/*file                           controllers.Assets.versioned(path="/public", file: Asset)

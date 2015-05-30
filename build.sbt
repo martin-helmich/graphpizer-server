@@ -16,5 +16,12 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "org.neo4j" % "neo4j" % "2.2.1",
   "com.google.inject" % "guice" % "3.0",
-  "javax.inject" % "javax.inject" % "1"
+  "javax.inject" % "javax.inject" % "1",
+  "org.webjars" % "angularjs" % "1.3.15",
+  "org.webjars.bower" % "angular-route" % "1.3.15",
+  "org.webjars.bower" % "angular-resource" % "1.3.15",
+  "org.webjars" % "requirejs" % "2.1.17",
+  "org.webjars" % "bootstrap" % "3.3.4"
 )
+
+pipelineStages := Seq(rjs, digest, gzip)
