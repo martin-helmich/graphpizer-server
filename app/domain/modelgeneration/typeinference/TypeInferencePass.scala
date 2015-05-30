@@ -37,8 +37,8 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
 
       backend execute cypher foreach { (method: Node, classStmt: Node, klass: Node, klassType: Node, parameters: java.util.List[Node]) =>
         val symbolTable = symbols
-          .scope(klass("fqcn").get)
-          .scope(method("name").get)
+                          .scope(klass("fqcn").get)
+                          .scope(method("name").get)
 
         backend execute variableCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node) =>
           symbolTable.addSymbol(variable("name").get)
@@ -89,68 +89,81 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
 
   protected def query(cypher: String): Unit = {
     val res = backend.execute(cypher).run()
-    try {
+    try { {
       val stats = res.getQueryStatistics
 
       affected += stats.getRelationshipsCreated
       affected += stats.getNodesCreated
+    }
     } finally {
       res.close()
     }
   }
 
   protected def propagateExprTypeByAssignment(): Unit = {
-    query( """MATCH (c:Expr_Assign)-[:SUB{type: "var"}]->(var),
-                   (c)-[:SUB{type: "expr"}]->(expr)-[:POSSIBLE_TYPE]->(type)
-             MERGE (var)-[:POSSIBLE_TYPE]->(type)""")
+    query(
+      """MATCH (c:Expr_Assign)-[:SUB{type: "var"}]->(var),
+               (c)-[:SUB{type: "expr"}]->(expr)-[:POSSIBLE_TYPE]->(type)
+         MERGE (var)-[:POSSIBLE_TYPE]->(type)"""
+    )
   }
 
   protected def propagateExprTypeByMethodCallResult(): Unit = {
-    query( """MATCH (call:Expr_MethodCall)-[:SUB{type:"var"}]->(var)-[:POSSIBLE_TYPE]->(calleeType{primitive:false})
-             MATCH (calleeType)-[:IS]->(:Class)-[:HAS_METHOD|EXTENDS*]->(callee:Method {name: call.name})-[:POSSIBLE_TYPE]->(calleeReturnType)
-             MERGE (call)-[:POSSIBLE_TYPE]->(calleeReturnType)""")
+    query(
+      """MATCH (call:Expr_MethodCall)-[:SUB{type:"var"}]->(var)-[:POSSIBLE_TYPE]->(calleeType{primitive:false})
+         MATCH (calleeType)-[:IS]->(:Class)-[:HAS_METHOD|EXTENDS*]->(callee:Method {name: call.name})-[:POSSIBLE_TYPE]->(calleeReturnType)
+         MERGE (call)-[:POSSIBLE_TYPE]->(calleeReturnType)"""
+    )
   }
 
   protected def propagateExprTypeByPropertyFetch(): Unit = {
-    query( """MATCH (propFetch:Expr_PropertyFetch)-[:SUB{type: "var"}]->(var)-[:POSSIBLE_TYPE]->(parentType),
-                   (parentType)-[:IS]->(:Class)-[:HAS_PROPERTY|EXTENDS*]->(property:Property {name: propFetch.name})-[:POSSIBLE_TYPE]->(propertyType)
-             MERGE (propFetch)-[:POSSIBLE_TYPE]->(propertyType)""")
+    query(
+      """MATCH (propFetch:Expr_PropertyFetch)-[:SUB{type: "var"}]->(var)-[:POSSIBLE_TYPE]->(parentType),
+               (parentType)-[:IS]->(:Class)-[:HAS_PROPERTY|EXTENDS*]->(property:Property {name: propFetch.name})-[:POSSIBLE_TYPE]->(propertyType)
+         MERGE (propFetch)-[:POSSIBLE_TYPE]->(propertyType)"""
+    )
   }
 
   protected def propagateMethodTypeByReturnStatement(): Unit = {
-    query( """MATCH (return:Stmt_Return)-[:SUB{type:"expr"}]->(expr)-[:POSSIBLE_TYPE]->(type:Type)
-             MATCH (return)<-[:SUB|HAS*]-(methodStmt)<-[:DEFINED_IN]-(method:Method)
-             MERGE (method)-[:POSSIBLE_TYPE]->(type)""")
+    query(
+      """MATCH (return:Stmt_Return)-[:SUB{type:"expr"}]->(expr)-[:POSSIBLE_TYPE]->(type:Type)
+         MATCH (return)<-[:SUB|HAS*]-(methodStmt)<-[:DEFINED_IN]-(method:Method)
+         MERGE (method)-[:POSSIBLE_TYPE]->(type)"""
+    )
   }
 
   protected def propagatePropertyTypeByAssignment(): Unit = {
-    query( """MATCH (ass:Expr_Assign)
-                       -[:SUB{type:"var"}]->(propFetch:Expr_PropertyFetch)
-                       -[:SUB{type:"var"}]->(propVar)
-                       -[:POSSIBLE_TYPE]->(propType)
-                 WHERE (propFetch.name IS NOT NULL)
-             MATCH (ass)
-                       -[:SUB{type: "expr"}]->(assignedExpr)
-                       -[:POSSIBLE_TYPE]->(assignedType)
-             MATCH (propType)
-                       -[:IS]->(propClass)
-                       -[:HAS_PROPERTY|EXTENDS*]->(assignedProperty:Property{name: propFetch.name})
-             MERGE (assignedProperty)-[:POSSIBLE_TYPE]->(assignedType)""")
+    query(
+      """MATCH (ass:Expr_Assign)
+                    -[:SUB{type:"var"}]->(propFetch:Expr_PropertyFetch)
+                    -[:SUB{type:"var"}]->(propVar)
+                    -[:POSSIBLE_TYPE]->(propType)
+             WHERE (propFetch.name IS NOT NULL)
+         MATCH (ass)-[:SUB{type: "expr"}]->(assignedExpr)
+                    -[:POSSIBLE_TYPE]->(assignedType)
+         MATCH (propType)-[:IS]->(propClass)
+                         -[:HAS_PROPERTY|EXTENDS*]->(assignedProperty:Property{name: propFetch.name})
+         MERGE (assignedProperty)-[:POSSIBLE_TYPE]->(assignedType)"""
+    )
   }
 
   protected def propagateExprTypeByBinaryOperation(): Unit = {
-    query("""MATCH (op)
-                       -[:SUB{type: "left"}]->(left)-[:POSSIBLE_TYPE]->(leftType{name: "integer"}),
-                   (op)-[:SUB{type:"right"}]->(right)-[:POSSIBLE_TYPE]->(rightType{name: "integer"})
-                 WHERE (op:Expr_BinaryOp_Minus OR Expr_BinaryOp_Plus OR Expr_BinaryOp_Mod OR Expr_BinaryOp_Mul OR Expr_BinaryOp_Pow)
-             MATCH (t:Type {name: "integer"})
-             MERGE (op)-[:POSSIBLE_TYPE]->(t)""")
-    query("""MATCH (op:Expr_BinaryOp_Minus)
-                       -[:SUB{type: "left"}]->(left)-[:POSSIBLE_TYPE]->(leftType{name: "double"}),
-                   (op)-[:SUB{type:"right"}]->(right)-[:POSSIBLE_TYPE]->(rightType{name: "double"})
-                 WHERE (op:Expr_BinaryOp_Minus OR Expr_BinaryOp_Plus OR Expr_BinaryOp_Mod OR Expr_BinaryOp_Mul OR Expr_BinaryOp_Pow)
-             MATCH (t:Type {name: "double"})
-             MERGE (op)-[:POSSIBLE_TYPE]->(t)""")
+    query(
+      """MATCH (op)
+                   -[:SUB{type: "left"}]->(left)-[:POSSIBLE_TYPE]->(leftType{name: "integer"}),
+               (op)-[:SUB{type:"right"}]->(right)-[:POSSIBLE_TYPE]->(rightType{name: "integer"})
+             WHERE (op:Expr_BinaryOp_Minus OR op:Expr_BinaryOp_Plus OR op:Expr_BinaryOp_Mod OR op:Expr_BinaryOp_Mul OR op:Expr_BinaryOp_Pow)
+         MERGE (t:Type {name: "integer", primitive: true, collection: false})
+         MERGE (op)-[:POSSIBLE_TYPE]->(t)"""
+    )
+    query(
+      """MATCH (op:Expr_BinaryOp_Minus)
+                   -[:SUB{type: "left"}]->(left)-[:POSSIBLE_TYPE]->(leftType{name: "double"}),
+               (op)-[:SUB{type:"right"}]->(right)-[:POSSIBLE_TYPE]->(rightType{name: "double"})
+             WHERE (op:Expr_BinaryOp_Minus OR op:Expr_BinaryOp_Plus OR op:Expr_BinaryOp_Mod OR op:Expr_BinaryOp_Mul OR op:Expr_BinaryOp_Pow)
+         MERGE (t:Type {name: "double", primitive: true, collection: false})
+         MERGE (op)-[:POSSIBLE_TYPE]->(t)"""
+    )
   }
 
 }
