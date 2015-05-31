@@ -1,1 +1,5 @@
-define ['./Project'], () ->
+define [
+  './File',
+  './Package',
+  './Project',
+], () ->

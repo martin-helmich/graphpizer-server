@@ -17,7 +17,7 @@ GET         /projects/:project/import/status                  @controllers.Impor
 POST        /projects/:project/import/start                   @controllers.Import.importAst(project: String)
 
 # Source export
-GET         /projects/:project/packages                       @controllers.Package.list(project: String)
+GET         /projects/:project/packages                       @controllers.Packages.list(project: String)
 GET         /projects/:project/files                          @controllers.File.list(project: String)
 
 # Model generation

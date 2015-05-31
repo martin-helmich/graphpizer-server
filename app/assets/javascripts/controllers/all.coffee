@@ -3,4 +3,6 @@ define [
   './ProjectNewCtrl',
   './ProjectDetailCtrl',
   './ProjectDeleteCtrl',
+  './PackageCtrl',
+  './FileCtrl',
 ], () ->

@@ -25,7 +25,8 @@ require [
   'jquery',
   'bootstrap',
   './controllers/all',
-  './resources/all'
+  './resources/all',
+  './services/ProjectService'
 ], (angular, app) ->
   app.config ['$routeProvider', ($routeProvider) ->
     $routeProvider
@@ -38,6 +39,12 @@ require [
     .when '/projects/:project/delete',
       templateUrl: 'assets/partials/project/confirmdelete.html'
       controller: 'ProjectDeleteCtrl'
+    .when '/projects/:project/source/packages',
+      templateUrl: 'assets/partials/source/packages.html'
+      controller: 'PackageCtrl'
+    .when '/projects/:project/source/files',
+      templateUrl: 'assets/partials/source/files.html'
+      controller: 'FileCtrl'
     .otherwise redirectTo: '/'
   ]
 

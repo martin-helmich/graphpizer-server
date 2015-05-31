@@ -1,0 +1,16 @@
+<div class="page-header">
+    <h1>{{ currentProject.name }}
+        <small>Files</small>
+    </h1>
+</div>
+
+<table class="table">
+    <tr>
+        <th>File name</th>
+        <th>Files</th>
+    </tr>
+    <tr ng-repeat="file in files">
+        <td>{{file.filename}}</td>
+        <td></td>
+    </tr>
+</table>

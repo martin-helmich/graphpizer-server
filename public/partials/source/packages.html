@@ -1,0 +1,16 @@
+<div class="page-header">
+    <h1>{{ currentProject.name }}
+        <small>Packages</small>
+    </h1>
+</div>
+
+<table class="table">
+    <tr>
+        <th>Package name</th>
+        <th>Files</th>
+    </tr>
+    <tr ng-repeat="pkg in packages">
+        <td>{{pkg.name}}</td>
+        <td>{{pkg.fileCount}}</td>
+    </tr>
+</table>

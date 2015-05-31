@@ -14,8 +14,20 @@
 
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
-                <li ng-if="currentProject != null">
-                    <a href="#/projects/{{ currentProject }}/classes">Classes</a>
+                <li ng-if="currentProject != null" class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Source code <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#/projects/{{ currentProject.slug }}/source/packages">
+                                <i class="glyphicon glyphicon-th-large"></i>
+                                Packages
+                            </a>
+                            <a href="#/projects/{{ currentProject.slug }}/source/files">
+                                <i class="glyphicon glyphicon-file"></i>
+                                Files
+                            </a>
+                        </li>
+                    </ul>
                 </li>
             </ul>
 

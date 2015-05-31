@@ -1,13 +1,15 @@
 define ['angular', '../Application', '../resources/Project'], (angular, app) ->
 
-  app.controller 'ProjectCtrl', ['$scope', '$rootScope', '$routeParams', 'Project', ($scope, $rootScope, $routeParams, Project) ->
-    $scope.projects = Project.query()
-    $scope.currentProject = $routeParams['project']
+  app.controller 'ProjectCtrl', ['$scope', '$rootScope', '$routeParams', '$q', 'ProjectService', ($scope, $rootScope, $routeParams, $q, ProjectService) ->
+    $scope.projects = ProjectService.all()
 
     $rootScope.$on '$routeChangeStart', (e, next) ->
-      $scope.currentProject = if next.params['project']? then next.params['project'] else undefined
+      if next.params['project']?
+        slug = next.params['project']
+        ProjectService.setCurrent slug
+        ProjectService.current().then (p) -> $scope.currentProject = p
 
-    refresh = -> $scope.projects = Project.query()
+    refresh = -> $scope.projects = ProjectService.refresh()
 
     $scope.$on 'projectCreated', refresh
     $scope.$on 'projectDeleted', refresh
