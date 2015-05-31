@@ -7,5 +7,7 @@ define ['angular', '../Application', '../resources/Project'], (angular, app) ->
     $scope.abortDelete = (project) -> $location.path "/projects/#{project.slug}"
     $scope.confirmDelete = (project) ->
       $scope.state = 'deleting'
-      project.$delete -> $scope.state = 'deleted'
+      project.$delete ->
+        $scope.$emit 'projectDeleted', project
+        $scope.state = 'deleted'
   ]
