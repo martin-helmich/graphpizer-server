@@ -45,6 +45,9 @@ require [
     .when '/projects/:project/source/files',
       templateUrl: 'assets/partials/source/files.html'
       controller: 'FileCtrl'
+    .when '/projects/:project/model/classes',
+      templateUrl: 'assets/partials/model/classes.html'
+      controller: 'ClassCtrl'
     .otherwise redirectTo: '/'
   ]
 

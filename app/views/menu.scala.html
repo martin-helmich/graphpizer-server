@@ -29,6 +29,17 @@
                         </li>
                     </ul>
                 </li>
+                <li ng-if="currentProject != null" class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Model <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#/projects/{{ currentProject.slug }}/model/classes">
+                                <i class="glyphicon glyphicon-asterisk"></i>
+                                Classes
+                            </a>
+                        </li>
+                    </ul>
+                </li>
             </ul>
 
             <ul class="nav navbar-nav navbar-right">
