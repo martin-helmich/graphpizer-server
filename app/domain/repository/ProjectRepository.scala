@@ -24,6 +24,10 @@ class ProjectRepository {
     }
   }
 
+  def findBySlug(slug: String)(implicit ctx: ExecutionContext): Future[Option[Project]] = {
+    findOneBy(new ProjectQuery(slug = slug))
+  }
+
   def findOneBy(q: ProjectQuery)(implicit ctx: ExecutionContext): Future[Option[Project]] = {
     Future {
       DB.withConnection { implicit c =>

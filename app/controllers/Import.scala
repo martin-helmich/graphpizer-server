@@ -5,30 +5,39 @@ import akka.actor.{Props, ActorSystem}
 import controllers.dto._
 import domain.astimport.NodeImportService
 import domain.astimport.NodeImportService.WipeRequest
+import domain.repository.ProjectRepository
 import persistence.ConnectionManager
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.mvc._
 import play.api.libs.functional.syntax._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
-class Import @Inject()(manager: ConnectionManager) extends Controller {
+class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRepository) extends Controller {
 
   class BadJsonTypeException extends Exception
 
   val system = ActorSystem("NodeImport")
   val importer = system.actorOf(Props(classOf[NodeImportService], manager), name = "import")
 
-  def status(project: String) = Action {
-    Ok("OK")
+  def status(project: String) = Action.async {
+    projectRepository findBySlug project map {
+      case Some(_) => Ok(Json.obj("status" -> "ok"))
+      case _ => NotFound(Json.obj("status" -> "ko", "message" -> s"No project '$project' exists."))
+    }
   }
 
-  def wipe(project: String) = Action { r =>
-    importer ! WipeRequest(project)
-    Accepted("Wiping all nodes")
+  def wipe(project: String) = Action.async { r =>
+    projectRepository findBySlug project map {
+      case Some(_) =>
+        importer ! WipeRequest(project)
+        Accepted(Json.obj("status" -> "ok", "message" -> "Wiping all nodes"))
+      case _ => BadRequest(Json.obj("status" -> "ko", "message" -> s"No project '$project' exists."))
+    }
   }
 
-  def importAst(project: String) = Action(BodyParsers.parse.json) { request =>
+  def importAst(project: String) = Action.async(BodyParsers.parse.json) { request =>
     val mapPrimitive: (JsValue) => Any = {
       case JsString(str) => str
       case JsNumber(no) => if (no.isValidInt) no.toInt else no.toDouble
@@ -87,16 +96,20 @@ class Import @Inject()(manager: ConnectionManager) extends Controller {
         (JsPath \ "relationships").read[Seq[Edge]]
       )(ImportDataSet.apply _)
 
-    val testResult = request.body.validate[ImportDataSet]
-    testResult.fold(
-      errors => {
-        BadRequest(JsError.toFlatJson(errors))
-      },
-      request => {
-        importer ! new NodeImportService.ImportRequest(project, request)
-        Accepted("Started node import")
-      }
-    )
+    projectRepository findBySlug project map {
+      case Some(p) =>
+        val testResult = request.body.validate[ImportDataSet]
+        testResult.fold(
+          errors => {
+            BadRequest(JsError.toFlatJson(errors))
+          },
+          request => {
+            importer ! new NodeImportService.ImportRequest(p.slug, request)
+            Accepted("Started node import")
+          }
+        )
+      case _ => BadRequest(Json.obj("status" -> "ko", "message" -> s"No project '$project' exists."))
+    }
   }
 
 }

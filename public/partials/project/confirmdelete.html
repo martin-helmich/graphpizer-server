@@ -1,0 +1,23 @@
+<div class="page-header">
+    <h1>
+        {{project.name}}
+        <small>Delete project?</small>
+    </h1>
+</div>
+
+<div class="alert alert-success" ng-if="state == 'deleted'">
+    The project has <strong>successfully been deleted</strong>!
+</div>
+
+<div class="panel panel-danger" ng-if="state != 'deleted'">
+    <div class="panel-heading">
+        <h3 class="panel-title">Really delete project?</h3>
+    </div>
+    <div class="panel-body">
+        Do you really want to delete the project <strong>{{project.name}}</strong>?
+    </div>
+    <div class="panel-footer text-right">
+        <button ng-click="abortDelete(project)" class="btn btn-default">No, take me back</button>
+        <button ng-click="confirmDelete(project)" class="btn btn-danger" ng-attr-disabled="state == 'deleting' || undefined">Kill it, before it lays eggs!</button>
+    </div>
+</div>

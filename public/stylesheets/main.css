@@ -1,0 +1,8 @@
+#main-container {
+    margin-top: 60px;
+}
+
+.btn > .glyphicon,
+.dropdown-menu > li .glyphicon {
+    margin-right: 8px;
+}

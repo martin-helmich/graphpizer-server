@@ -18,7 +18,8 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
   class ProjectWrites[T](implicit r: Request[T]) extends Writes[Project] {
     def writes(p: Project) = Json.obj(
       "__href" -> controllers.routes.Projects.show(p.slug).absoluteURL(),
-      "name" -> p.name
+      "name" -> p.name,
+      "slug" -> p.slug
     )
   }
 
@@ -43,7 +44,7 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
 
   def show(slug: String) = Action.async { implicit r =>
     implicit val projectWrites = new ProjectWrites()
-    projectRepository.findOneBy(new ProjectQuery(slug = slug)).map {
+    projectRepository findBySlug slug map {
       case Some(p) => Ok(Json.toJson(p))
       case None => NotFound(Json.obj("status" -> "notfound", "message" -> s"Project $slug does not exist"))
     }
@@ -56,7 +57,7 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
     r.body.validate[Project].fold(
       errors => Future { BadRequest(Json.obj("message" -> JsError.toFlatJson(errors))) },
       project => {
-        projectRepository.findOneBy(new ProjectQuery(slug = project.slug)).map { res =>
+        projectRepository findBySlug slug map { res =>
           val f = res match {
             case Some(_) => projectRepository.update(project).map { r => Ok(Json.toJson(project)) }
             case None => projectRepository.add(project).map { r => Created(Json.toJson(project)) }
@@ -70,7 +71,7 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
   }
 
   def delete(slug: String) = Action { implicit r =>
-    projectRepository.findOneBy(new ProjectQuery(slug = slug)).map {
+    projectRepository findBySlug slug map {
       case Some(p) => projectRepository.delete(p)
       case _ =>
     }
