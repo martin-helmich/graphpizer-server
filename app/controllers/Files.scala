@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
 import scala.concurrent.Future
 
 @Singleton
-class File @Inject()(manager: ConnectionManager) extends Controller {
+class Files @Inject()(manager: ConnectionManager) extends Controller {
 
   def list(project: String) = Action {
     val json = manager connect project transactional { (b, t) =>

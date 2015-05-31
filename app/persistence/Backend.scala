@@ -1,7 +1,6 @@
 package persistence
 
 import org.neo4j.graphdb._
-import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb.traversal.TraversalDescription
 import play.api.Logger
 
@@ -10,6 +9,7 @@ trait BackendInterface {
   def nodes: NodeRepository
 
   def createNode(labels: String*): Node
+
   def createNode(label: Label, moreLabels: Label*): Node
 
   def createLabel(name: String): Label
@@ -50,12 +50,13 @@ class Backend(graph: GraphDatabaseService) extends BackendInterface {
 
   def transactional[T](func: (BackendInterface, Transaction) => T): T = {
     val tx = graph.beginTx()
-    try {
+    try { {
       Logger.info("Starting Neo4j transaction")
       val result = func(this, tx)
       tx.success()
       Logger.info("Transaction success")
       return result
+    }
     } catch {
       case e: Exception =>
         Logger.error(e.getMessage, e)

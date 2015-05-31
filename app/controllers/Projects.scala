@@ -4,8 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import domain.model.Project
 import domain.repository.ProjectRepository
-import domain.repository.ProjectRepository.ProjectQuery
-import play.api.libs.json.{JsValue, Json, Writes, _}
+import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,6 +17,18 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
   class ProjectWrites[T](implicit r: Request[T]) extends Writes[Project] {
     def writes(p: Project) = Json.obj(
       "__href" -> controllers.routes.Projects.show(p.slug).absoluteURL(),
+      "__actions" -> Json.arr(
+        Json.obj(
+          "rel" -> "snapshot",
+          "href" -> controllers.routes.Snapshots.create(p.slug).absoluteURL()
+        )
+      ),
+      "__links" -> Json.arr(
+        Json.obj(
+          "rel" -> "snapshots",
+          "href" -> controllers.routes.Snapshots.list(p.slug).absoluteURL()
+        )
+      ),
       "name" -> p.name,
       "slug" -> p.slug
     )
@@ -38,7 +49,7 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
     implicit val projectWrites = new ProjectWrites()
     projectRepository.all.map { projects =>
       val json = Json.toJson(projects)
-      Ok(json).withHeaders("X-ObjectCount" -> s"${projects.size}")
+      Ok(json).withHeaders("X-ObjectCount" -> s"${projects.size }")
     }
   }
 
