@@ -3,6 +3,7 @@ package domain.repository
 import java.sql.Connection
 import java.util.UUID
 
+import akka.actor.Actor
 import domain.model.{Snapshot, Project}
 import anorm._
 import domain.repository.ProjectRepository.ProjectQuery
@@ -14,39 +15,97 @@ import play.api.Play.current
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
-class ProjectRepository {
+object ProjectRepository {
 
-  def all(implicit ctx: ExecutionContext): Future[Seq[Project]] = {
+  case class ProjectQuery(name: String = null, slug: String = null, one: Boolean = false) {
+    def toSql: (String, Seq[NamedParameter]) = {
+      val c = mutable.Buffer[String]("1")
+      val p = mutable.Buffer[NamedParameter]()
+
+      if (name != null) {
+        c += "name={name}"
+        p += "name" -> name
+      }
+
+      if (slug != null) {
+        c += "slug={slug}"
+        p += "slug" -> slug
+      }
+
+      (c reduce { (a, b) => s"$a AND $b" }, p.toSeq)
+    }
+  }
+
+  trait ProjectStatement
+  case class DeleteProjectByQuery(query: ProjectQuery) extends ProjectStatement
+  case class DeleteProject(project: Project) extends ProjectStatement
+  case class UpdateProject(project: Project) extends ProjectStatement
+  case class AddProject(project: Project) extends ProjectStatement
+
+  case class ProjectResponseSet(projects: Seq[Project])
+  case class ProjectResponse(project: Project)
+  case class ProjectEmptyResponse()
+
+  case class ProjectDeleteSuccess()
+  case class ProjectDeleteError(e: Exception)
+
+}
+
+class ProjectRepository {
+  import ProjectRepository._
+
+  def ? (q: ProjectQuery) : Future[Any] = {
+    case ProjectQuery(null, null) => all map { ProjectResponseSet }
+    case q: ProjectQuery if q.one => findOneBy(q) map {
+      case Some(p) => ProjectResponse(p)
+      case _ => ProjectEmptyResponse() }
+    case q: ProjectQuery => findBy(q) map { ProjectResponseSet }
+  }
+
+  def ! (s: ProjectStatement) : Future[Any] = {
+    case DeleteProject(p) => delete(p)
+    case DeleteProjectByQuery(q) => findBy(q) map { ps =>
+      Future.sequence(ps.map { delete }) map { _.reduce { (a,b) => a && b } }
+    }
+    case AddProject(p) => add(p)
+    case UpdateProject(p) => update(p)
+  }
+
+  protected def all(implicit ctx: ExecutionContext): Future[Seq[Project]] = {
     Future {
       DB.withConnection { implicit c =>
-        val selectAll = SQL("SELECT name, slug FROM projects")
-        val res = selectAll().map { mapResult }
-
-        res.toList
+        SQL"SELECT name, slug FROM projects"().map { mapResult }.toList
       }
     }
   }
 
-  def findBySlug(slug: String)(implicit ctx: ExecutionContext): Future[Option[Project]] = {
+  protected def findBySlug(slug: String)(implicit ctx: ExecutionContext): Future[Option[Project]] = {
     findOneBy(new ProjectQuery(slug = slug))
   }
 
-  def findOneBy(q: ProjectQuery)(implicit ctx: ExecutionContext): Future[Option[Project]] = {
+  protected def findOneBy(q: ProjectQuery)(implicit ctx: ExecutionContext): Future[Option[Project]] = {
     Future {
       DB.withConnection { implicit c =>
         val (constraint, params) = q.toSql
-        println(constraint, params)
         val sql = SQL(s"SELECT name, slug FROM projects WHERE $constraint LIMIT 1").on(params: _*)()
-        val res = sql.map { mapResult }
 
-        val r = res.headOption
-        println("done")
-        r
+        sql.map { mapResult }.headOption
       }
     }
   }
 
-  def add(p: Project)(implicit ctx: ExecutionContext): Future[Boolean] = {
+  protected def findBy(q: ProjectQuery)(implicit ctx: ExecutionContext): Future[Seq[Project]] = {
+    Future {
+      DB.withConnection { implicit c =>
+        val (constraint, params) = q.toSql
+        val sql = SQL(s"SELECT name, slug FROM projects WHERE $constraint").on(params: _*)()
+
+        sql.map { mapResult }
+      }
+    }
+  }
+
+  protected def add(p: Project)(implicit ctx: ExecutionContext): Future[Boolean] = {
     Future {
       DB.withConnection { implicit c =>
         SQL"INSERT INTO projects (name, slug) VALUES (${p.name }, ${p.slug })".execute()
@@ -54,7 +113,7 @@ class ProjectRepository {
     }
   }
 
-  def update(p: Project)(implicit ctx: ExecutionContext): Future[Boolean] = {
+  protected def update(p: Project)(implicit ctx: ExecutionContext): Future[Boolean] = {
     Future {
       DB.withConnection { implicit c =>
         SQL"UPDATE projects SET name=${p.name } WHERE slug=${p.slug }".execute()
@@ -78,7 +137,7 @@ class ProjectRepository {
     }
   }
 
-  def delete(p: Project)(implicit ctx: ExecutionContext): Future[Boolean] = {
+  protected def delete(p: Project)(implicit ctx: ExecutionContext): Future[Boolean] = {
     Future {
       DB.withConnection { implicit c => SQL"DELETE FROM projects WHERE slug=${p.slug }".execute() }
     }
@@ -98,29 +157,6 @@ class ProjectRepository {
         case Row(id: UUID, tstamp: Long, size: Int) =>
           new Snapshot(UUID.randomUUID(), new Instant(tstamp), size)
       }.toList
-    }
-  }
-
-}
-
-object ProjectRepository {
-
-  class ProjectQuery(name: String = null, slug: String = null) {
-    def toSql: (String, Seq[NamedParameter]) = {
-      val c = mutable.Buffer[String]("1")
-      val p = mutable.Buffer[NamedParameter]()
-
-      if (name != null) {
-        c += "name={name}"
-        p += "name" -> name
-      }
-
-      if (slug != null) {
-        c += "slug={slug}"
-        p += "slug" -> slug
-      }
-
-      (c reduce { (a, b) => s"$a AND $b" }, p.toSeq)
     }
   }
 

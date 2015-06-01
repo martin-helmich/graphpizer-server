@@ -3,15 +3,22 @@ package controllers
 import java.util.UUID
 import javax.inject.Inject
 
+import akka.actor.{Props, ActorSystem}
 import domain.model.{Project, Snapshot}
 import domain.repository.ProjectRepository
+import domain.service.SnapshotService
+import domain.service.SnapshotService.{CreateSnapshotSuccess, CreateSnapshot}
 import persistence.ConnectionManager
 import play.api.mvc.{AnyContent, Request, Action, Controller}
 import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import akka.pattern.ask
 
-class Snapshots @Inject()(projectRepository: ProjectRepository, connectionManager: ConnectionManager) extends Controller {
+class Snapshots @Inject()(actorSystem: ActorSystem) extends Controller {
+
+  val snapshotService = actorSystem.actorOf(Props[SnapshotService], "snapshot-service")
 
   class SnapshotWriter(p: Project)(implicit r: Request[AnyContent]) extends Writes[Snapshot] {
     def writes(o: Snapshot): JsValue = {
@@ -39,10 +46,17 @@ class Snapshots @Inject()(projectRepository: ProjectRepository, connectionManage
   }
 
   def create(slug: String) = Action { implicit r =>
-    projectRepository findBySlug slug foreach { case Some(p) =>
-      p.snapshots += connectionManager.snapshot(p.slug)
-      projectRepository.update(p)
+    implicit val timeout = Duration.Inf
+
+    snapshotService ? CreateSnapshot(slug) map {
+      case CreateSnapshotSuccess(snapshot) =>
+      case _ =>
     }
+
+//    projectRepository findBySlug slug foreach { case Some(p) =>
+//      p.snapshots += connectionManager.snapshot(p.slug)
+//      projectRepository.update(p)
+//    }
     Accepted(Json.obj("status" -> "ok", "message" -> "Snapshot started"))
   }
 

@@ -4,6 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import domain.model.Project
 import domain.repository.ProjectRepository
+import domain.repository.ProjectRepository._
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -47,17 +48,17 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
 
   def list = Action.async { implicit r =>
     implicit val projectWrites = new ProjectWrites()
-    projectRepository.all.map { projects =>
-      val json = Json.toJson(projects)
-      Ok(json).withHeaders("X-ObjectCount" -> s"${projects.size }")
+    projectRepository ? ProjectQuery() map {
+      case ProjectResponseSet(projects) => Ok(Json.toJson(projects)).withHeaders("X-ObjectCount" -> projects.size.toString)
+      case _ => InternalServerError("Whut?!")
     }
   }
 
   def show(slug: String) = Action.async { implicit r =>
     implicit val projectWrites = new ProjectWrites()
-    projectRepository findBySlug slug map {
-      case Some(p) => Ok(Json.toJson(p))
-      case None => NotFound(Json.obj("status" -> "notfound", "message" -> s"Project $slug does not exist"))
+    projectRepository ? ProjectQuery(slug = slug, one = true) map {
+      case ProjectResponse(p) => Ok(Json.toJson(p))
+      case ProjectEmptyResponse() => NotFound(Json.obj("status" -> "notfound", "message" -> s"Project $slug does not exist"))
     }
   }
 
@@ -68,26 +69,20 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
     r.body.validate[Project].fold(
       errors => Future { BadRequest(Json.obj("message" -> JsError.toFlatJson(errors))) },
       project => {
-        projectRepository findBySlug slug map { res =>
-          val f = res match {
-            case Some(_) => projectRepository.update(project).map { r => Ok(Json.toJson(project)) }
-            case None => projectRepository.add(project).map { r => Created(Json.toJson(project)) }
-            case _ => Future { InternalServerError(Json.obj("status" -> "ko", "message" -> "Unknown project status")) }
-          }
-          Await.result(f, Duration.Inf)
+        projectRepository ? ProjectQuery(slug = slug, one = true) flatMap {
+          case ProjectResponse(p) => projectRepository ! UpdateProject(project) map { r => Ok(Json.toJson(project)) }
+          case ProjectEmptyResponse() => projectRepository ! AddProject(project) map { r => Created(Json.toJson(project)) }
+          case _ => Future { InternalServerError(Json.obj("status" -> "ko", "message" -> "Unknown project status")) }
         }
-
       }
     )
   }
 
-  def delete(slug: String) = Action { implicit r =>
-    projectRepository findBySlug slug map {
-      case Some(p) => projectRepository.delete(p)
-      case _ =>
+  def delete(slug: String) = Action.async { implicit r =>
+    projectRepository ! DeleteProjectByQuery(ProjectQuery(slug = slug)) map {
+      case true => Ok(Json.obj("status" -> "ok", "message" -> "Project deleted"))
+      case false => InternalServerError(Json.obj("status" -> "ko", "message" -> "Some error"))
     }
-
-    NoContent
   }
 
 }

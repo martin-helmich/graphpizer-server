@@ -1,14 +1,19 @@
 package domain.service
 
-import akka.actor.Actor
-import akka.actor.Actor.Receive
+import javax.inject.Inject
+
+import akka.actor.{Props, Actor}
 import domain.model.Snapshot
-import domain.service.SnapshotService.CreateSnapshot
+import domain.repository.ProjectRepository
 
 class SnapshotService extends Actor {
+  import domain.service.SnapshotService._
+
+  val projectRepository = context.actorOf(Props[ProjectRepository], "projects")
 
   def receive = {
     case CreateSnapshot(s) =>
+    case GetSnapshots(s) =>
   }
 
 }
@@ -16,6 +21,7 @@ class SnapshotService extends Actor {
 object SnapshotService {
 
   case class CreateSnapshot(project: String)
+  case class GetSnapshots(project: String)
 
   case class CreateSnapshotSuccess(snapshot: Snapshot)
   case class CreateSnapshotError(err: Exception)
