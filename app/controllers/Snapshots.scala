@@ -27,9 +27,8 @@ class Snapshots @Inject()(projectRepository: ProjectRepository, connectionManage
 
   def create(slug: String) = Action { implicit r =>
     projectRepository findBySlug slug foreach { case Some(p) =>
-      val snapshot = connectionManager.snapshot(p.slug)
-      p.snapshots += snapshot
-        projectRepository.update()
+      p.snapshots += connectionManager.snapshot(p.slug)
+      projectRepository.update(p)
     }
     Ok("foo")
   }

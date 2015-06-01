@@ -59,6 +59,7 @@ class ProjectRepository {
         p.snapshots match {
           case snaps: LazyCollection[Snapshot] =>
             snaps.added foreach { s =>
+              println("insert " + s)
               SQL"INSERT INTO snapshots (id, project, timestamp, size) VALUES (${s.id}, ${p.slug}, ${s.timestamp.getMillis}, ${s.size}})".execute()
             }
           case _ =>

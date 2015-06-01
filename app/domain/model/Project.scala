@@ -1,7 +1,9 @@
 package domain.model
 
+import scala.collection.mutable
+
 case class Project(slug: String,
                    name: String,
-                   snapshots: Seq[Snapshot] = Seq()) {
+                   snapshots: mutable.Buffer[Snapshot] = mutable.Buffer()) {
 
 }
