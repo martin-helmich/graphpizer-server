@@ -12,6 +12,7 @@ GET           /projects/:slug                                   @controllers.Pro
 DELETE        /projects/:slug                                   @controllers.Projects.delete(slug: String)
 POST          /projects/:slug/action/snapshot                   @controllers.Snapshots.create(slug: String)
 GET           /projects/:slug/snapshots                         @controllers.Snapshots.list(slug: String)
+POST          /projects/:slug/snapshots/:id/action/restore      @controllers.Snapshots.restore(slug: String, id: java.util.UUID)
 
 # Source code import
 POST          /projects/:project/wipe                           @controllers.Import.wipe(project: String)

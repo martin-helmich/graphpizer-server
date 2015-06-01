@@ -5,7 +5,7 @@ import java.sql.Connection
 import scala.collection.mutable
 import scala.collection.mutable.BufferLike
 
-class LazyCollection[T](factory: => Seq[T])(implicit c: Connection) extends mutable.Buffer[T] {
+class LazyCollection[T](factory: => Seq[T]) extends mutable.Buffer[T] {
 
   var initialized = false
   var inner: Seq[T] = null

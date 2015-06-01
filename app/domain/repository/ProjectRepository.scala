@@ -36,10 +36,12 @@ class ProjectRepository {
       DB.withConnection { implicit c =>
         val (constraint, params) = q.toSql
         println(constraint, params)
-        val sql = SQL(s"SELECT name, slug FROM projects WHERE $constraint LIMIT 1").on(params: _*)
-        val res = sql().map { mapResult }
+        val sql = SQL(s"SELECT name, slug FROM projects WHERE $constraint LIMIT 1").on(params: _*)()
+        val res = sql.map { mapResult }
 
-        res.headOption
+        val r = res.headOption
+        println("done")
+        r
       }
     }
   }
@@ -59,8 +61,15 @@ class ProjectRepository {
         p.snapshots match {
           case snaps: LazyCollection[Snapshot] =>
             snaps.added foreach { s =>
-              println("insert " + s)
-              SQL"INSERT INTO snapshots (id, project, timestamp, size) VALUES (${s.id}, ${p.slug}, ${s.timestamp.getMillis}, ${s.size}})".execute()
+              try {
+                println("insert " + s)
+                val sql = SQL"INSERT INTO snapshots (id, project, timestamp, size) VALUES (${s.id }, ${p.slug }, ${s.timestamp.getMillis }, ${s.size })"
+                println(sql)
+                val r = sql.executeInsert()
+                println("result " + r)
+              } catch {
+                case e: Exception => println("WAGH: " + e.getMessage)
+              }
             }
           case _ =>
         }
@@ -75,7 +84,7 @@ class ProjectRepository {
     }
   }
 
-  protected def mapResult(r: Row)(implicit c: Connection): Project = {
+  protected def mapResult(r: Row): Project = {
     r match {
       case Row(name: String, slug: String) =>
         val snapshots = new LazyCollection[Snapshot]({ loadSnapshots(slug) })
@@ -83,13 +92,12 @@ class ProjectRepository {
     }
   }
 
-  protected def loadSnapshots(s: String)(implicit c: Connection): Seq[Snapshot] = {
+  protected def loadSnapshots(s: String): Seq[Snapshot] = {
     DB.withConnection { implicit c =>
-      println(s"loading snapshots for $s")
       SQL"SELECT id, timestamp, size FROM snapshots WHERE project=$s"().map {
-        case Row(id: String, tstamp: Long, size: Long) =>
-          new Snapshot(UUID.fromString(id), new Instant(tstamp), size)
-      }
+        case Row(id: UUID, tstamp: Long, size: Int) =>
+          new Snapshot(UUID.randomUUID(), new Instant(tstamp), size)
+      }.toList
     }
   }
 
