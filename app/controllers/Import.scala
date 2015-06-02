@@ -2,16 +2,20 @@ package controllers
 
 import javax.inject.{Singleton, Inject}
 import akka.actor.{Props, ActorSystem}
+import akka.util.Timeout
 import controllers.dto._
 import domain.astimport.NodeImportService
 import domain.astimport.NodeImportService.WipeRequest
 import domain.repository.ProjectRepository
+import domain.repository.ProjectRepository._
 import persistence.ConnectionManager
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.mvc._
 import play.api.libs.functional.syntax._
 import scala.concurrent.ExecutionContext.Implicits.global
+import akka.pattern.ask
+import scala.concurrent.duration._
 
 @Singleton
 class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRepository) extends Controller {
@@ -20,20 +24,25 @@ class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRep
 
   val system = ActorSystem("NodeImport")
   val importer = system.actorOf(Props(classOf[NodeImportService], manager), name = "import")
+  val projects = system.actorOf(Props[ProjectRepository], name = "projects")
+
+  val ProjectNotFound = (p: String) => NotFound(Json.obj("status" -> "ko", "messsage" -> s"Project '$p' does not exist"))
+
+  implicit val to = Timeout(1.second)
 
   def status(project: String) = Action.async {
-    projectRepository findBySlug project map {
-      case Some(_) => Ok(Json.obj("status" -> "ok"))
-      case _ => NotFound(Json.obj("status" -> "ko", "message" -> s"No project '$project' exists."))
+    projects ? ProjectQuery(slug = project) map {
+      case ProjectResponse(p) => Ok(Json.obj("status" -> "ok"))
+      case ProjectEmptyResponse() => ProjectNotFound(project)
     }
   }
 
   def wipe(project: String) = Action.async { r =>
-    projectRepository findBySlug project map {
-      case Some(_) =>
+    projects ? ProjectQuery(slug = project) map {
+      case ProjectResponse(p) =>
         importer ! WipeRequest(project)
         Accepted(Json.obj("status" -> "ok", "message" -> "Wiping all nodes"))
-      case _ => BadRequest(Json.obj("status" -> "ko", "message" -> s"No project '$project' exists."))
+      case ProjectEmptyResponse() => ProjectNotFound(project)
     }
   }
 
@@ -96,8 +105,8 @@ class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRep
         (JsPath \ "relationships").read[Seq[Edge]]
       )(ImportDataSet.apply _)
 
-    projectRepository findBySlug project map {
-      case Some(p) =>
+    projects ? ProjectQuery(slug = project) map {
+      case ProjectResponse(p) =>
         val testResult = request.body.validate[ImportDataSet]
         testResult.fold(
           errors => {
@@ -108,7 +117,7 @@ class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRep
             Accepted("Started node import")
           }
         )
-      case _ => BadRequest(Json.obj("status" -> "ko", "message" -> s"No project '$project' exists."))
+      case _ => ProjectNotFound(project)
     }
   }
 

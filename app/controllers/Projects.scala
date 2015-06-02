@@ -2,6 +2,9 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
+import akka.actor.{ActorSystem, Props}
+import akka.pattern.ask
+import akka.util.Timeout
 import domain.model.Project
 import domain.repository.ProjectRepository
 import domain.repository.ProjectRepository._
@@ -9,11 +12,15 @@ import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 @Singleton
-class Projects @Inject()(projectRepository: ProjectRepository) extends Controller {
+class Projects @Inject()(actorSystem: ActorSystem) extends Controller {
+
+  val projectRepository = actorSystem.actorOf(Props[ProjectRepository], "projects")
+
+  implicit val timeout = Timeout(1.second)
 
   class ProjectWrites[T](implicit r: Request[T]) extends Writes[Project] {
     def writes(p: Project) = Json.obj(
@@ -70,8 +77,8 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
       errors => Future { BadRequest(Json.obj("message" -> JsError.toFlatJson(errors))) },
       project => {
         projectRepository ? ProjectQuery(slug = slug, one = true) flatMap {
-          case ProjectResponse(p) => projectRepository ! UpdateProject(project) map { r => Ok(Json.toJson(project)) }
-          case ProjectEmptyResponse() => projectRepository ! AddProject(project) map { r => Created(Json.toJson(project)) }
+          case ProjectResponse(p) => projectRepository ? UpdateProject(project) map { r => Ok(Json.toJson(project)) }
+          case ProjectEmptyResponse() => projectRepository ? AddProject(project) map { r => Created(Json.toJson(project)) }
           case _ => Future { InternalServerError(Json.obj("status" -> "ko", "message" -> "Unknown project status")) }
         }
       }
@@ -79,7 +86,7 @@ class Projects @Inject()(projectRepository: ProjectRepository) extends Controlle
   }
 
   def delete(slug: String) = Action.async { implicit r =>
-    projectRepository ! DeleteProjectByQuery(ProjectQuery(slug = slug)) map {
+    projectRepository ? DeleteProjectByQuery(ProjectQuery(slug = slug)) map {
       case true => Ok(Json.obj("status" -> "ok", "message" -> "Project deleted"))
       case false => InternalServerError(Json.obj("status" -> "ko", "message" -> "Some error"))
     }

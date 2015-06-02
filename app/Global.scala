@@ -1,4 +1,5 @@
-import com.google.inject.{AbstractModule, Guice}
+import akka.actor.ActorSystem
+import com.google.inject.{Provides, AbstractModule, Guice}
 import com.typesafe.config.{Config, ConfigFactory}
 import persistence.{ConnectionManager, Backend}
 import play.api._
@@ -8,7 +9,12 @@ object Global extends GlobalSettings {
   val injector = Guice.createInjector(new AbstractModule {
     protected def configure(): Unit = {
       val config = ConfigFactory.load()
-      this bind classOf[Config] toInstance config
+
+      this.bind(classOf[Config]).toInstance(config)
+    }
+
+    @Provides def provideActorSystem(): ActorSystem = {
+      ActorSystem("graphpizer")
     }
   })
 
