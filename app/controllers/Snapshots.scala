@@ -1,15 +1,15 @@
 package controllers
 
 import java.util.UUID
-import javax.inject.{Named, Inject}
+import javax.inject.Inject
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import domain.model.{Project, Snapshot}
 import domain.repository.ProjectRepository
 import domain.repository.ProjectRepository.{ProjectEmptyResponse, ProjectQuery, ProjectResponse}
-import domain.repository.SnapshotRepository.{SnapshotsResponse, SnapshotsByProject}
+import domain.repository.SnapshotRepository.{SnapshotsByProject, SnapshotsResponse}
 import domain.service.SnapshotService
 import domain.service.SnapshotService.CreateSnapshot
 import persistence.ConnectionManager

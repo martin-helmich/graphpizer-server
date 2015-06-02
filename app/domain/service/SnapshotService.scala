@@ -1,7 +1,5 @@
 package domain.service
 
-import javax.inject.Inject
-
 import akka.actor.{Actor, Props}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -9,12 +7,10 @@ import domain.model.Snapshot
 import domain.repository.SnapshotRepository._
 import domain.repository.{ProjectRepository, SnapshotRepository}
 import persistence.ConnectionManager
+import util.AkkaHelpers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
-
-import util.AkkaHelpers._
 
 class SnapshotService(connectionManager: ConnectionManager) extends Actor {
   import domain.service.SnapshotService._

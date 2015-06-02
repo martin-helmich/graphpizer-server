@@ -1,7 +1,9 @@
 package controllers
 
-import javax.inject.{Singleton, Inject}
-import akka.actor.{Props, ActorSystem}
+import javax.inject.{Inject, Singleton}
+
+import akka.actor.{ActorSystem, Props}
+import akka.pattern.ask
 import akka.util.Timeout
 import controllers.dto._
 import domain.astimport.NodeImportService
@@ -10,11 +12,11 @@ import domain.repository.ProjectRepository
 import domain.repository.ProjectRepository._
 import persistence.ConnectionManager
 import play.api.data.validation.ValidationError
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc._
-import play.api.libs.functional.syntax._
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import akka.pattern.ask
 import scala.concurrent.duration._
 
 @Singleton

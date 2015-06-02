@@ -3,15 +3,11 @@ package domain.repository
 import java.util.UUID
 
 import akka.actor.Actor
+import anorm._
 import domain.model.Snapshot
 import org.joda.time.Instant
-import play.api.db.DB
 import play.api.Play.current
-import anorm._
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import scala.concurrent.Future
-
+import play.api.db.DB
 import util.AkkaHelpers._
 
 class SnapshotRepository extends Actor {
