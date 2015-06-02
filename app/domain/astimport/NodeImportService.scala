@@ -6,7 +6,7 @@ import controllers.dto.{Edge, Node, ImportDataSet}
 import domain.astimport.NodeImportService.{WipeRequest, ImportRequest}
 import org.neo4j.graphdb
 import org.neo4j.graphdb._
-import persistence.{ConnectionManager, Backend}
+import persistence.{Query, ConnectionManager, Backend}
 import scala.collection.JavaConversions._
 import persistence.NodeWrappers._
 

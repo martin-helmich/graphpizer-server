@@ -26,12 +26,6 @@ class Files @Inject()(manager: ConnectionManager) extends Controller {
           )
         })
       )
-      //        JsArray(
-      //          (nodes toSeq map { n => Json.obj(
-      //            "filename" -> (n getProperty "filename").asInstanceOf[String]
-      //          )
-      //          })
-      //        )
     }
     Ok(json)
   }

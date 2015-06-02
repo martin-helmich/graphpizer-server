@@ -54,7 +54,7 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
 
         backend execute assignmentCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node, types: java.util.List[Node]) =>
           types foreach { t =>
-            variable.property[String]("name") foreach {
+            variable[String]("name") foreach {
               symbolTable.addTypeForSymbol(_, typeMapper.mapNodeToType(t))
             }
           }
@@ -65,17 +65,11 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
     iter += 1
   }
 
-  def affectedInLastPass: Int = {
-    affected
-  }
+  def affectedInLastPass: Int = affected
 
-  def done: Boolean = {
-    affected == 0
-  }
+  def done: Boolean = affected == 0
 
-  def iterationCount: Int = {
-    iter
-  }
+  def iterationCount: Int = iter
 
   protected def reset(): Unit = {
     affected = 0
@@ -89,12 +83,11 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
 
   protected def query(cypher: String): Unit = {
     val res = backend.execute(cypher).run()
-    try { {
+    try {
       val stats = res.getQueryStatistics
 
       affected += stats.getRelationshipsCreated
       affected += stats.getNodesCreated
-    }
     } finally {
       res.close()
     }

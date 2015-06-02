@@ -16,7 +16,7 @@ import scala.concurrent.Future
 class Packages @Inject()(manager: ConnectionManager) extends Controller {
 
   def list(project: String) = Action.async {
-    val future = Future {
+    Future {
       manager connect project transactional { (b, _) =>
         val f = b execute "MATCH (p:Package)-[:CONTAINS_FILE]->(f) RETURN p, COUNT(f)" map { (pkg: Node, fileCount: Long) =>
           Json.obj(
@@ -25,18 +25,8 @@ class Packages @Inject()(manager: ConnectionManager) extends Controller {
           )
         }
         JsArray(f)
-
-        //        val nodes: Iterator[Node] = result.columnAs[Node]("p")
-        //
-        //          nodes.toArray.map({ n =>
-        //            Json.obj(
-        //              "name" -> (n getProperty "name").asInstanceOf[String]
-        //            )
-        //          })
-        //        )
       }
-    }
-    future map { json => Ok(json) }
+    } map { j => Ok(j) }
   }
 
 }

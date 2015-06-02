@@ -58,7 +58,7 @@ class NamespaceResolver(backend: BackendInterface) {
         .uniqueness(Uniqueness.NODE_GLOBAL)
 
       b execute cypher foreach { (ns: Node, imports: java.util.List[Node]) =>
-        val namespaceName = ns("name").get.asInstanceOf[String]
+        val Some(namespaceName) = ns[String]("name")
         val knownImports = imports map { p => (p.property[String]("alias").get, p.property[String]("name").get) } toMap
 
         ns >--> SUB filter { r =>
@@ -66,7 +66,7 @@ class NamespaceResolver(backend: BackendInterface) {
         } map { _.getEndNode } foreach { root =>
 
           traversal traverse root map { _.endNode } filter { _ ? "allParts" } foreach { nameNode =>
-            val name = nameNode("allParts").get.asInstanceOf[String]
+            val Some(name) = nameNode[String]("allParts")
             knownImports get name match {
               case Some(s: String) => nameNode("fullName") = s
               case _ => nameNode("fullName") = s"$namespaceName\\$name"
