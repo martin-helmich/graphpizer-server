@@ -50,13 +50,10 @@ class Backend(graph: GraphDatabaseService) extends BackendInterface {
 
   def transactional[T](func: (BackendInterface, Transaction) => T): T = {
     val tx = graph.beginTx()
-    try { {
-      Logger.info("Starting Neo4j transaction")
+    try {
       val result = func(this, tx)
       tx.success()
-      Logger.info("Transaction success")
-      return result
-    }
+      result
     } catch {
       case e: Exception =>
         Logger.error(e.getMessage, e)

@@ -1,21 +1,16 @@
 package domain.repository
 
-import java.lang.annotation.{Retention, ElementType, Target}
-import java.lang.annotation.ElementType._
-import java.lang.annotation.RetentionPolicy._
-
-import akka.actor.{ActorRef, Actor}
+import akka.actor.Actor
 import anorm._
-import com.google.inject.BindingAnnotation
 import domain.model.Project
 import play.api.Logger
 import play.api.Play.current
 import play.api.db.DB
+import util.AkkaHelpers._
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import util.AkkaHelpers._
 
 object ProjectRepository {
 

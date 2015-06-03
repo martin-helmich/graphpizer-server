@@ -3,34 +3,36 @@
 # ~~~~
 
 # Home page
-GET           /                                                 @controllers.Application.index
-GET           /hello/:user                                      @controllers.Application.hello(user: String)
+GET           /                                                   @controllers.Application.index
+GET           /hello/:user                                        @controllers.Application.hello(user: String)
 
-GET           /projects                                         @controllers.Projects.list
-PUT           /projects/:slug                                   @controllers.Projects.upsert(slug: String)
-GET           /projects/:slug                                   @controllers.Projects.show(slug: String)
-DELETE        /projects/:slug                                   @controllers.Projects.delete(slug: String)
-POST          /projects/:slug/action/snapshot                   @controllers.Snapshots.create(slug: String)
-GET           /projects/:slug/snapshots                         @controllers.Snapshots.list(slug: String)
-POST          /projects/:slug/snapshots/:id/action/restore      @controllers.Snapshots.restore(slug: String, id: java.util.UUID)
+GET           /projects                                           @controllers.Projects.list
+PUT           /projects/:slug                                     @controllers.Projects.upsert(slug: String)
+GET           /projects/:slug                                     @controllers.Projects.show(slug: String)
+DELETE        /projects/:slug                                     @controllers.Projects.delete(slug: String)
+POST          /projects/:slug/action/snapshot                     @controllers.Snapshots.create(slug: String)
+GET           /projects/:slug/snapshots                           @controllers.Snapshots.list(slug: String)
+POST          /projects/:slug/snapshots/:id/action/restore        @controllers.Snapshots.restore(slug: String, id: java.util.UUID)
 
 # Source code import
-POST          /projects/:project/wipe                           @controllers.Import.wipe(project: String)
-GET           /projects/:project/import/status                  @controllers.Import.status(project: String)
-POST          /projects/:project/import/start                   @controllers.Import.importAst(project: String)
+POST          /projects/:project/wipe                             @controllers.Import.wipe(project: String)
+GET           /projects/:project/import/status                    @controllers.Import.status(project: String)
+POST          /projects/:project/import/start                     @controllers.Import.importAst(project: String)
 
 # Source export
-GET           /projects/:project/packages                       @controllers.Packages.list(project: String)
-GET           /projects/:project/files                          @controllers.Files.list(project: String)
+GET           /projects/:project/packages                         @controllers.Packages.list(project: String)
+GET           /projects/:project/files                            @controllers.Files.list(project: String)
 
 # Model generation
-POST          /projects/:project/model/generate                 @controllers.Model.generate(project: String)
-GET           /projects/:project/model/classes                  @controllers.Classes.list(project: String)
-GET           /projects/:project/model/classes/:clazz           @controllers.Classes.show(project: String, clazz: String)
-GET           /projects/:project/model/interfaces               @controllers.Interfaces.list(project: String)
-GET           /projects/:project/model/interfaces/:iface        @controllers.Interfaces.show(project: String, iface: String)
-GET           /projects/:project/model/types                    @controllers.Types.list(project: String)
-GET           /projects/:project/model/types/:typ               @controllers.Types.show(project: String, typ: String)
+POST          /projects/:project/model/generate                   @controllers.Model.generate(project: String)
+GET           /projects/:project/model/classes                    @controllers.Classes.list(project: String)
+GET           /projects/:project/model/classes/:clazz             @controllers.Classes.show(project: String, clazz: String)
+GET           /projects/:project/model/interfaces                 @controllers.Interfaces.list(project: String)
+GET           /projects/:project/model/interfaces/:iface          @controllers.Interfaces.show(project: String, iface: String)
+GET           /projects/:project/model/types                      @controllers.Types.list(project: String)
+GET           /projects/:project/model/types/:typ                 @controllers.Types.show(project: String, typ: String)
+
+POST          /projects/:project/cypher                           @controllers.Cypher.execute(project: String)
 
 # Map static resources from the /public folder to the /assets URL path
-GET           /assets/*file                                     controllers.Assets.versioned(path="/public", file: Asset)
+GET           /assets/*file                                       controllers.Assets.versioned(path="/public", file: Asset)

@@ -4,6 +4,7 @@ import org.neo4j.graphdb.{Result, GraphDatabaseService}
 import play.api.Logger
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class Statement(graph: GraphDatabaseService, cypher: String) {
 
