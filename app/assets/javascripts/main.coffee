@@ -26,7 +26,8 @@ require [
   'bootstrap',
   './controllers/all',
   './resources/all',
-  './services/ProjectService'
+  './services/ProjectService',
+  './directives/ClassName'
 ], (angular, app) ->
   app.config ['$routeProvider', ($routeProvider) ->
     $routeProvider

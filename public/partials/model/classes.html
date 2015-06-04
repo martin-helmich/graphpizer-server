@@ -9,8 +9,10 @@
         <th>Class name</th>
         <th>Files</th>
     </tr>
-    <tr ng-repeat="file in files">
-        <td>{{file.filename}}</td>
+    <tr ng-repeat="class in classes">
+        <td>
+            <class-name fqcn="class.fqcn"></class-name>
+        </td>
         <td></td>
     </tr>
 </table>

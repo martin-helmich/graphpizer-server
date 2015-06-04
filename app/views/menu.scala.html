@@ -40,6 +40,9 @@
                         </li>
                     </ul>
                 </li>
+                <li ng-if="currentProject != null">
+                    <a href="#/projects/{{ currentProject.slug }}/cypher" >Cypher</a>
+                </li>
             </ul>
 
             <ul class="nav navbar-nav navbar-right">

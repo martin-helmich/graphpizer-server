@@ -5,4 +5,5 @@ define [
   './ProjectDeleteCtrl',
   './PackageCtrl',
   './FileCtrl',
+  './ClassCtrl',
 ], () ->
