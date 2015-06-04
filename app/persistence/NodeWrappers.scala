@@ -6,6 +6,7 @@ import org.neo4j.graphdb._
 import org.neo4j.graphdb.traversal.{Evaluation, Evaluator}
 import play.api.Logger
 import scala.collection.JavaConversions._
+import scala.language.implicitConversions
 
 object NodeWrappers {
 
@@ -39,6 +40,8 @@ object NodeWrappers {
       case true => Some(underlyingRelationship.getProperty(name).asInstanceOf[T])
       case _ => None
     }
+
+    def id: Long = underlyingRelationship.getId
 
   }
 
@@ -141,14 +144,14 @@ object NodeWrappers {
         case "Scalar_LNumber" => Scalar_LNumber(underlyingNode ! "value")
         case "Scalar_String" => Scalar_String(underlyingNode ! "value")
         case _ =>
-          Logger.warn(s"Unknown node label ${firstLabel}")
+          Logger.warn(s"Unknown node label $firstLabel")
           Unknown()
       }
     }
 
   }
 
-  implicit def EvaluatorWrapper(e: (Path) => Tuple2[Boolean, Boolean]): Evaluator = {
+  implicit def EvaluatorWrapper(e: (Path) => (Boolean, Boolean)): Evaluator = {
     new Evaluator {
       override def evaluate(path: Path): Evaluation = {
         val r = e(path)
