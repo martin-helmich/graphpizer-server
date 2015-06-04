@@ -6,3 +6,7 @@
 .dropdown-menu > li .glyphicon {
     margin-right: 8px;
 }
+
+.cypher-node-table tbody th {
+    width: 30%;
+}

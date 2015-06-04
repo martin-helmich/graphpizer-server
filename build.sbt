@@ -22,6 +22,7 @@ libraryDependencies ++= Seq(
   "org.webjars.bower" % "angular-resource" % "1.3.15",
   "org.webjars" % "requirejs" % "2.1.17",
   "org.webjars" % "bootstrap" % "3.3.4",
+  "org.webjars" % "d3js" % "3.5.5-1",
   "joda-time" % "joda-time" % "2.8",
   "commons-io" % "commons-io" % "2.4"
 )

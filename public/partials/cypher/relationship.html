@@ -1,0 +1,16 @@
+<table class="table table-condensed table-bordered cypher-relationship-table">
+    <thead>
+    <tr>
+        <th colspan="2">
+            <span class="label label-primary">{{ relationship.label }}</span>
+            <span class="label label-default pull-right">#{{ relationship.id }}</span>
+        </th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr ng-repeat="(key, value) in relationship.properties">
+        <th>{{key}}</th>
+        <td>{{value}}</td>
+    </tr>
+    </tbody>
+</table>

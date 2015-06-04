@@ -1,0 +1,16 @@
+<table class="table table-condensed table-bordered cypher-node-table">
+    <thead>
+    <tr>
+        <th colspan="2">
+            <span class="label label-primary" ng-repeat="label in node.labels">{{ label }}</span>
+            <span class="label label-default pull-right">#{{ node.id }}</span>
+        </th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr ng-repeat="(key, value) in node.properties">
+        <th>{{key}}</th>
+        <td>{{value}}</td>
+    </tr>
+    </tbody>
+</table>

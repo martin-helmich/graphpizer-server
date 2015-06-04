@@ -1,0 +1,52 @@
+<div class="page-header">
+    <h1>
+        {{ currentProject.name }}
+        <small>Cypher query</small>
+    </h1>
+</div>
+
+<form>
+    <div ng-class="{'form-group': true, 'has-error': inpError}">
+        <label class="control-label" for="cypher">Your query</label>
+<textarea ng-model="cypher" id="cypher" class="form-control">
+
+</textarea>
+        <div ng-if="inpError" class="text-danger">{{inpErrorMsg}}</div>
+    </div>
+    <div class="form-group">
+        <label class="control-label" for="graph">Display as graph</label>
+        <input type="checkbox" ng-model="graph" id="graph" />
+    </div>
+    <div class="form-group">
+        <button class="btn btn-primary" ng-click="execute(cypher)">
+            <i class="glyphicon glyphicon-play"></i>
+            Execute!
+        </button>
+    </div>
+</form>
+
+<div ng-if="data">
+    <hr />
+    <table class="table table-hover">
+        <tr>
+            <th ng-repeat="column in data.columns">
+                {{column}}
+            </th>
+        </tr>
+        <tr ng-repeat="row in data.data">
+            <td ng-repeat="column in data.columns" ng-init="cell = row[column]">
+                <div ng-switch="cell.type">
+                    <cypher-node node="cell" ng-switch-when="node"></cypher-node>
+                    <cypher-relationship relationship="cell" ng-switch-when="rel"></cypher-relationship>
+                    <table ng-switch-when="node-collection" class="table table-bordered table-condensed">
+                        <tr ng-repeat="item in cell.items">
+                            <td>{{$index}}</td>
+                            <td><cypher-node node="item"></cypher-node></td>
+                        </tr>
+                    </table>
+                    <div ng-switch-default>{{cell}}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>

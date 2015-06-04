@@ -1,0 +1,5 @@
+define [
+  './ClassName',
+  './CypherNode',
+  './CypherRelationship',
+], () ->

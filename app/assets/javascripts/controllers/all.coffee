@@ -6,4 +6,5 @@ define [
   './PackageCtrl',
   './FileCtrl',
   './ClassCtrl',
+  './CypherCtrl',
 ], () ->

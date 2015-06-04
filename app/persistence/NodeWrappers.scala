@@ -26,9 +26,8 @@ object NodeWrappers {
       underlyingRelationship.getEndNode
     }
 
-    def end: Node = {
-      underlyingRelationship.getEndNode
-    }
+    def end: Node = { underlyingRelationship.getEndNode }
+    def start: Node = { underlyingRelationship.getStartNode }
 
     def apply(name: String) = property[AnyRef](name)
 

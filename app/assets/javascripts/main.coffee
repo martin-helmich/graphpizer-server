@@ -3,6 +3,7 @@ requirejs.config
     'angular': ['../lib/angularjs/angular']
     'angular-route': ['../lib/angularjs/angular-route']
     'angular-resource': ['../lib/angularjs/angular-resource']
+    'd3': ['../lib/d3js/d3']
     'jquery': ['../lib/jquery/jquery']
     'bootstrap': ['../lib/bootstrap/js/bootstrap']
   shim:
@@ -24,10 +25,11 @@ require [
   'angular-resource',
   'jquery',
   'bootstrap',
+  'd3',
   './controllers/all',
   './resources/all',
   './services/ProjectService',
-  './directives/ClassName'
+  './directives/all'
 ], (angular, app) ->
   app.config ['$routeProvider', ($routeProvider) ->
     $routeProvider
@@ -49,6 +51,9 @@ require [
     .when '/projects/:project/model/classes',
       templateUrl: 'assets/partials/model/classes.html'
       controller: 'ClassCtrl'
+    .when '/projects/:project/cypher',
+      templateUrl: 'assets/partials/cypher.html'
+      controller: 'CypherCtrl'
     .otherwise redirectTo: '/'
   ]
 
