@@ -10,3 +10,24 @@
 .cypher-node-table tbody th {
     width: 30%;
 }
+
+.node {
+    stroke: white;
+    stroke-width: 2px;
+}
+
+.node-active {
+    stroke: #555;
+    stroke-width: 2px;
+}
+
+.link, .marker {
+    stroke: #999;
+    stroke-width: 1px;
+    stroke-opacity: 1;
+}
+
+.link-active {
+    stroke: #555;
+    stroke-width: 4px;
+}

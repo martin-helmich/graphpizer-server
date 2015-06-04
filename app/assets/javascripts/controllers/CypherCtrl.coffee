@@ -2,11 +2,11 @@ define ['angular', '../Application', '../resources/Project'], (angular, app) ->
   app.controller 'CypherCtrl', ['$scope', '$location', '$http', 'ProjectService',
     ($scope, $location, $http, ProjectService) ->
       ProjectService.current().then (project) ->
-        $scope.execute = (cypher) ->
+        $scope.execute = (cypher, graph) ->
           q =
             cypher: cypher
             params: {}
-            graph: $scope.graph
+            graph: graph
 
           $http.post '/projects/' + project.slug + '/cypher', q
           .success (data, status, headers, config) ->
