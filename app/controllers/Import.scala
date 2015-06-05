@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 @Singleton
-class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRepository) extends Controller {
+class Import @Inject()(manager: ConnectionManager) extends Controller {
 
   class BadJsonTypeException extends Exception
 
@@ -34,14 +34,14 @@ class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRep
   implicit val to = Timeout(1.second)
 
   def status(project: String) = Action.async {
-    projects ? ProjectQuery(slug = project) map {
+    projects ? ProjectQuery(slug = project, one = true) map {
       case ProjectResponse(p) => Ok(Json.obj("status" -> "ok"))
       case ProjectEmptyResponse() => ProjectNotFound(project)
     }
   }
 
   def wipe(project: String) = Action.async { r =>
-    projects ? ProjectQuery(slug = project) map {
+    projects ? ProjectQuery(slug = project, one = true) map {
       case ProjectResponse(p) =>
         importer ! WipeRequest(project)
         Accepted(Json.obj("status" -> "ok", "message" -> "Wiping all nodes"))
@@ -69,7 +69,7 @@ class Import @Inject()(manager: ConnectionManager, projectRepository: ProjectRep
         (JsPath \ "relationships").read[Seq[Edge]]
       )(ImportDataSet.apply _)
 
-    projects ? ProjectQuery(slug = project) map {
+    projects ? ProjectQuery(slug = project, one = true) map {
       case ProjectResponse(p) =>
         val testResult = request.body.validate[ImportDataSet]
         testResult.fold(
