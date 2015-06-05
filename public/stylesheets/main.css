@@ -11,14 +11,23 @@
     width: 30%;
 }
 
-.node {
+.node circle {
     stroke: white;
     stroke-width: 2px;
 }
 
-.node-active {
+.node .node-id {
+    display: none;
+}
+
+.node-active circle {
     stroke: #555;
     stroke-width: 2px;
+}
+
+.node-active .node-id {
+    display: block;
+    z-index: 999;
 }
 
 .link, .marker {
