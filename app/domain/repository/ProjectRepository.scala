@@ -12,51 +12,6 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-object ProjectRepository {
-
-  case class ProjectQuery(name: String = null, slug: String = null, one: Boolean = false) {
-    def toSql: (String, Seq[NamedParameter]) = {
-      val c = mutable.Buffer[String]("1")
-      val p = mutable.Buffer[NamedParameter]()
-
-      if (name != null) {
-        c += "name={name}"
-        p += "name" -> name
-      }
-
-      if (slug != null) {
-        c += "slug={slug}"
-        p += "slug" -> slug
-      }
-
-      (c reduce { (a, b) => s"$a AND $b" }, p.toSeq)
-    }
-  }
-
-  case class DeleteProjectByQuery(query: ProjectQuery)
-
-  case class DeleteProject(project: Project)
-
-  case class DeleteProjectSuccess()
-
-  case class DeleteProjectError(e: Exception)
-
-  case class UpdateProject(project: Project)
-
-  case class UpdateProjectSuccess()
-
-  case class AddProject(project: Project)
-
-  case class AddProjectSuccess()
-
-  case class ProjectResponseSet(projects: Seq[Project])
-
-  case class ProjectResponse(project: Project)
-
-  case class ProjectEmptyResponse()
-
-}
-
 class ProjectRepository extends Actor {
 
   import ProjectRepository._
@@ -173,5 +128,50 @@ class ProjectRepository extends Actor {
         new Project(slug, name)
     }
   }
+
+}
+
+object ProjectRepository {
+
+  case class ProjectQuery(name: String = null, slug: String = null, one: Boolean = false) {
+    def toSql: (String, Seq[NamedParameter]) = {
+      val c = mutable.Buffer[String]("1")
+      val p = mutable.Buffer[NamedParameter]()
+
+      if (name != null) {
+        c += "name={name}"
+        p += "name" -> name
+      }
+
+      if (slug != null) {
+        c += "slug={slug}"
+        p += "slug" -> slug
+      }
+
+      (c reduce { (a, b) => s"$a AND $b" }, p.toSeq)
+    }
+  }
+
+  case class DeleteProjectByQuery(query: ProjectQuery)
+
+  case class DeleteProject(project: Project)
+
+  case class DeleteProjectSuccess()
+
+  case class DeleteProjectError(e: Exception)
+
+  case class UpdateProject(project: Project)
+
+  case class UpdateProjectSuccess()
+
+  case class AddProject(project: Project)
+
+  case class AddProjectSuccess()
+
+  case class ProjectResponseSet(projects: Seq[Project])
+
+  case class ProjectResponse(project: Project)
+
+  case class ProjectEmptyResponse()
 
 }
