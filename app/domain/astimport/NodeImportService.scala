@@ -1,29 +1,32 @@
 package domain.astimport
 
-import akka.actor.{Props, ActorLogging, Actor}
+import akka.actor.{Actor, ActorLogging}
 import akka.event.LoggingReceive
-import controllers.dto.{Edge, Node, ImportDataSet}
-import domain.astimport.NodeImportService.{WipeRequest, ImportRequest}
+import controllers.dto.ImportDataSet
+import domain.astimport.NodeImportService.{ImportRequest, WipeRequest}
 import org.neo4j.graphdb
 import org.neo4j.graphdb._
-import persistence.{Query, ConnectionManager, Backend}
-import scala.collection.JavaConversions._
+import persistence.ConnectionManager
 import persistence.NodeWrappers._
+import util.WrappingActorLogging
 
-class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogging {
+import scala.collection.JavaConversions._
+
+class NodeImportService(manager: ConnectionManager) extends Actor with WrappingActorLogging with ActorLogging {
 
   def receive = LoggingReceive {
     case ImportRequest(project, data) => importData(project, data)
     case WipeRequest(project) => wipe(project)
+    case unknown => log.warning("Unknown request to actor: " + unknown)
   }
 
-  def wipe = (project: String) => {
+  def wipe = (project: String) => withLog(s"Wiping all nodes on project $project") exec {
     manager connect project transactional { (b, t) =>
-      b execute "MATCH (c) OPTIONAL MATCH (c)-[r]->() DELETE c, r" run
+      b.execute("MATCH (c) OPTIONAL MATCH (c)-[r]->() DELETE c, r").run()
     }
   }
 
-  def importData = (project: String, data: ImportDataSet) => {
+  def importData = (project: String, data: ImportDataSet) => withLog(s"Importing ${data.nodes.size } nodes.") exec {
     manager connect project transactional { (b, t) =>
       val knownNodes = data.nodes.map { dto =>
         dto.merge match {
@@ -53,11 +56,8 @@ class NodeImportService(manager: ConnectionManager) extends Actor with ActorLogg
 
         val rel: Relationship = start --| dto.label |--> end <
 
-//        val rel = start createRelationshipTo(end, b createEdgeType dto.label)
         dto.properties.foreach { case (key, value) => rel(key) = value }
       }
-
-      log.info("Imported " + knownNodes.size + " nodes")
     }
   }
 
