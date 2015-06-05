@@ -22,6 +22,8 @@ POST          /projects/:project/import/start                     @controllers.I
 # Source export
 GET           /projects/:project/packages                         @controllers.Packages.list(project: String)
 GET           /projects/:project/files                            @controllers.Files.list(project: String)
+HEAD          /projects/:project/files/*file                      @controllers.Files.check(project: String, file: String)
+GET           /projects/:project/files/*file                      @controllers.Files.show(project: String, file: String)
 
 # Model generation
 POST          /projects/:project/model/generate                   @controllers.Model.generate(project: String)
