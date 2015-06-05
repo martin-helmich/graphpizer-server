@@ -10,6 +10,7 @@ import domain.repository.ProjectRepository
 import domain.repository.ProjectRepository._
 import play.api.libs.json._
 import play.api.mvc._
+import controllers.helpers.ActionHelpers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -61,12 +62,9 @@ class Projects @Inject()(actorSystem: ActorSystem) extends Controller {
     }
   }
 
-  def show(slug: String) = Action.async { implicit r =>
+  def show(slug: String) = ProjectAction(slug, projectRepository) { implicit r =>
     implicit val projectWrites = new ProjectWrites()
-    projectRepository ? ProjectQuery(slug = slug, one = true) map {
-      case ProjectResponse(p) => Ok(Json.toJson(p))
-      case ProjectEmptyResponse() => NotFound(Json.obj("status" -> "notfound", "message" -> s"Project $slug does not exist"))
-    }
+    Ok(Json.toJson(r.project))
   }
 
   def upsert(slug: String) = Action.async(BodyParsers.parse.json) { implicit r =>

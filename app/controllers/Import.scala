@@ -12,22 +12,22 @@ import domain.astimport.NodeImportService.WipeRequest
 import domain.repository.ProjectRepository
 import domain.repository.ProjectRepository._
 import persistence.ConnectionManager
-import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc._
+
+import controllers.helpers.ActionHelpers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 @Singleton
-class Import @Inject()(manager: ConnectionManager) extends Controller {
+class Import @Inject()(manager: ConnectionManager, actorSystem: ActorSystem) extends Controller {
 
   class BadJsonTypeException extends Exception
 
-  val system = ActorSystem("NodeImport")
-  val importer = system.actorOf(Props(classOf[NodeImportService], manager), name = "import")
-  val projects = system.actorOf(Props[ProjectRepository], name = "projects")
+  val importer = actorSystem.actorOf(Props(classOf[NodeImportService], manager), name = "import")
+  val projects = actorSystem.actorOf(Props[ProjectRepository], name = "projects")
 
   val ProjectNotFound = (p: String) => NotFound(Json.obj("status" -> "ko", "messsage" -> s"Project '$p' does not exist"))
 
@@ -40,16 +40,12 @@ class Import @Inject()(manager: ConnectionManager) extends Controller {
     }
   }
 
-  def wipe(project: String) = Action.async { r =>
-    projects ? ProjectQuery(slug = project, one = true) map {
-      case ProjectResponse(p) =>
-        importer ! WipeRequest(project)
-        Accepted(Json.obj("status" -> "ok", "message" -> "Wiping all nodes"))
-      case ProjectEmptyResponse() => ProjectNotFound(project)
-    }
+  def wipe(project: String) = ProjectAction(project, projects) { r =>
+    importer ! WipeRequest(r.project.slug)
+    Accepted(Json.obj("status" -> "ok"))
   }
 
-  def importAst(project: String) = Action.async(BodyParsers.parse.json) { request =>
+  def importAst(project: String) = ProjectAction(project, projects)(BodyParsers.parse.json) { request =>
     implicit val objectReads = new JsonObjectReads()
     implicit val nodeRead: Reads[Node] = (
       (JsPath \ "labels").read[Seq[String]] and
@@ -69,20 +65,16 @@ class Import @Inject()(manager: ConnectionManager) extends Controller {
         (JsPath \ "relationships").read[Seq[Edge]]
       )(ImportDataSet.apply _)
 
-    projects ? ProjectQuery(slug = project, one = true) map {
-      case ProjectResponse(p) =>
-        val testResult = request.body.validate[ImportDataSet]
-        testResult.fold(
-          errors => {
-            BadRequest(JsError.toFlatJson(errors))
-          },
-          request => {
-            importer ! new NodeImportService.ImportRequest(p.slug, request)
-            Accepted("Started node import")
-          }
-        )
-      case _ => ProjectNotFound(project)
-    }
+      val testResult = request.body.validate[ImportDataSet]
+      testResult.fold(
+        errors => {
+          BadRequest(JsError.toFlatJson(errors))
+        },
+        importRequest => {
+          importer ! new NodeImportService.ImportRequest(request.project.slug, importRequest)
+          Accepted(Json.obj("status" -> "ok", "message" -> "Started node import"))
+        }
+      )
   }
 
 }

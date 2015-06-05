@@ -56,24 +56,12 @@ class Snapshots @Inject()(actorSystem: ActorSystem, manager: ConnectionManager) 
       case _ =>
         Future { InternalServerError("Gubbel!") }
     }
-
-    //    snapshotService ? SnapshotsByProject(slug)
-    //    projects findBySlug slug map {
-    //      case Some(project) =>
-    //        implicit val w = new SnapshotWriter(project)
-    //        Ok(Json.toJson(project.snapshots))
-    //      case _ => NotFound("Gubbel!")
-    //    }
   }
 
   def create(slug: String) = Action { implicit r =>
     implicit val timeout = Timeout(5.minutes)
     snapshotService ! CreateSnapshot(slug)
 
-    //    projects findBySlug slug foreach { case Some(p) =>
-    //      p.snapshots += connectionManager.snapshot(p.slug)
-    //      projects.update(p)
-    //    }
     Accepted(Json.obj("status" -> "ok", "message" -> "Snapshot started"))
   }
 
