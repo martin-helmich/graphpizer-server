@@ -3,7 +3,6 @@ package domain.astimport
 import akka.actor.{Actor, ActorLogging}
 import akka.event.LoggingReceive
 import controllers.dto.ImportDataSet
-import domain.astimport.NodeImportService.{ImportRequest, WipeRequest}
 import org.neo4j.graphdb
 import org.neo4j.graphdb._
 import persistence.ConnectionManager
@@ -13,10 +12,14 @@ import util.WrappingActorLogging
 import scala.collection.JavaConversions._
 
 class NodeImportService(manager: ConnectionManager) extends Actor with WrappingActorLogging with ActorLogging {
+  import NodeImportService._
 
   def receive = LoggingReceive {
     case ImportRequest(project, data) => importData(project, data)
-    case WipeRequest(project) => wipe(project)
+    case WipeRequest(project) =>
+      wipe(project)
+      sender() ! WipeSuccess()
+    case AllClear() => sender() ! AllClear()
     case unknown => log.warning("Unknown request to actor: " + unknown)
   }
 
@@ -68,5 +71,9 @@ object NodeImportService {
   case class ImportRequest(project: String, data: ImportDataSet)
 
   case class WipeRequest(project: String)
+
+  case class WipeSuccess()
+
+  case class AllClear()
 
 }

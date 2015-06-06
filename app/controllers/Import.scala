@@ -40,9 +40,11 @@ class Import @Inject()(manager: ConnectionManager, actorSystem: ActorSystem) ext
     }
   }
 
-  def wipe(project: String) = ProjectAction(project, projects) { r =>
-    importer ! WipeRequest(r.project.slug)
-    Accepted(Json.obj("status" -> "ok"))
+  def wipe(project: String) = ProjectAction(project, projects).async { r =>
+    implicit val to = Timeout(10.minutes)
+    importer ? WipeRequest(r.project.slug) map { r =>
+      Ok(Json.obj("status" -> "ok"))
+    }
   }
 
   def importAst(project: String) = ProjectAction(project, projects)(BodyParsers.parse.json) { request =>
