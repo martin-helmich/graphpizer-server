@@ -40,9 +40,13 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case _ => classRelations(0)
         }
 
-        val fqcn = (namespaceStmt.property[String]("name"), classStmt.property[String]("name")) match {
-          case (Some(namespace: String), Some(name: String)) => namespace + "\\" + name
-          case _ => classStmt.property[String]("name").get
+        val fqcn = if (namespaceStmt != null) {
+          (namespaceStmt.property[String]("name"), classStmt.property[String]("name")) match {
+            case (Some(namespace: String), Some(name: String)) => namespace + "\\" + name
+            case _ => classStmt.property[String]("name").get
+          }
+        } else {
+          classStmt.property[String]("name").get
         }
 
         println(s"Treating class $fqcn")
