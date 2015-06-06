@@ -4,4 +4,7 @@ define ['angular', '../Application', 'angular-resource'], (angular, app) ->
     $resource 'projects/:id', 'id': '@slug',
       save:
         method: 'PUT'
+      generateModel:
+        method: 'POST'
+        url: 'projects/:id/model/generate'
   ]

@@ -10,7 +10,7 @@ object ViewHelpers {
   def writeTypeRef(p: String, t: Node)(implicit request: Request[AnyContent]): JsValue = {
     Json.obj(
       "name" -> t.property[String]("name"),
-      "__href" -> controllers.routes.Types.show(p, t ! "slug").absoluteURL(),
+      "__href" -> controllers.routes.Types.show(p, t.id).absoluteURL(),
       "__id" -> t.id
     )
   }
@@ -18,7 +18,7 @@ object ViewHelpers {
   def writeClassRef(p: String, c: Node)(implicit request: Request[AnyContent]): JsValue = {
     Json.obj(
       "fqcn" -> c.property[String]("fqcn"),
-      "__href" -> controllers.routes.Types.show(p, c ! "slug").absoluteURL(),
+      "__href" -> controllers.routes.Classes.show(p, c ! "slug").absoluteURL(),
       "__id" -> c.id
     )
   }

@@ -86,7 +86,7 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
             }
             } catch {
               case e: Exception =>
-                Logger.warn(e.getMessage)
+                Logger.warn(e.getMessage, e)
                 Json.obj(
                   "__id" -> clazz.id,
                   "__invalidObject" -> e.getMessage

@@ -13,7 +13,6 @@ case class DataType(name: String, primitive: Boolean, collection: Boolean = fals
       ModelLabelType.Type,
       Map(
         "name" -> name,
-        "slug" -> slug,
         "primitive" -> Boolean.box(primitive),
         "collection" -> Boolean.box(collection)
       )

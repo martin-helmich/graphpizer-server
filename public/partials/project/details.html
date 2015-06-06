@@ -7,3 +7,41 @@
     </div>
     <h1>{{ project.name }}</h1>
 </div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Model</h3>
+            </div>
+            <table class="table">
+                <tr>
+                    <td><a href="#/projects/{{ project.slug }}/source/packages">Packages</a></td>
+                    <td>{{ model.packages }}</td>
+                </tr>
+                <tr>
+                    <td><a href="#/projects/{{ project.slug }}/model/classes">Classes</a></td>
+                    <td>{{ model.classes }}</td>
+                </tr>
+                <tr>
+                    <td>Interfaces</td>
+                    <td>{{ model.interfaces }}</td>
+                </tr>
+                <tr>
+                    <td>Traits</td>
+                    <td>{{ model.traits }}</td>
+                </tr>
+                <tr>
+                    <td>Methods</td>
+                    <td>{{ model.methods }}</td>
+                </tr>
+            </table>
+            <div class="panel-footer text-right">
+                <button class="btn btn-primary" ng-click="generateModel(project)">
+                    <i class="glyphicon glyphicon-cog"></i>
+                    Generate/Update model
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

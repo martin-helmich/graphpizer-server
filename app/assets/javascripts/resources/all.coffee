@@ -3,4 +3,5 @@ define [
   './File',
   './Package',
   './Project',
+  './ProjectModel',
 ], () ->
