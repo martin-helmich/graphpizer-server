@@ -68,14 +68,26 @@ class Cypher @Inject()(manager: ConnectionManager) extends Controller {
           (name, r get name match {
             case n: Node => mapNode(n)
             case r: Relationship => mapRel(r)
-            case nodes: java.util.List[Node] => Json.obj(
-              "type" -> "node-collection",
-              "items" -> JsArray(nodes.toSeq.map { mapNode })
-            )
-            case rels: java.util.List[Relationship] => Json.obj(
-              "type" -> "rel-collection",
-              "items" -> JsArray(rels.toSeq.map { mapRel })
-            )
+            case list: java.util.List[_] =>
+              val containsNodes = list.count { _.isInstanceOf[Node] } == list.size
+              if (containsNodes) {
+                Json.obj(
+                  "type" -> "node-collection",
+                  "items" -> JsArray(list.toSeq.map { n => mapNode(n.asInstanceOf[Node]) })
+                )
+              } else {
+                Json.obj(
+                  "type" -> "rel-collection",
+                  "items" -> JsArray(list.toSeq.map { n => mapRel(n.asInstanceOf[Relationship]) })
+                )
+              }
+//
+//              Json.obj("foo" -> "bar")
+////            case nodes: java.util.List[Node] =>
+////            case rels: java.util.List[Relationship] => Json.obj(
+////              "type" -> "rel-collection",
+////              "items" -> JsArray(rels.toSeq.map { mapRel })
+////            )
             case null => JsNull
             case s: String => JsString(s)
             case i: java.lang.Long => JsNumber(i.toLong)

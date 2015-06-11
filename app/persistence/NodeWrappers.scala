@@ -1,6 +1,6 @@
 package persistence
 
-import domain.model.AstLabelType
+import domain.model.AstEdgeType._
 import domain.model.AstNodeTypes._
 import org.neo4j.graphdb._
 import org.neo4j.graphdb.traversal.{Evaluation, Evaluator}
@@ -99,10 +99,7 @@ object NodeWrappers {
 
     def update[T](name: String, value: T) = underlyingNode.setProperty(name, value)
 
-    def update[T <: AnyRef](name: String, value: Option[T]) = value match {
-      case Some(v: T) => underlyingNode.setProperty(name, v)
-      case _ =>
-    }
+    def update[T <: AnyRef](name: String, value: Option[T]): Unit = value foreach { underlyingNode.setProperty(name, _) }
 
     def ?(name: String) = underlyingNode hasProperty name
 
@@ -134,14 +131,61 @@ object NodeWrappers {
       underlyingNode getRelationships(relationshipType, Direction.OUTGOING)
     }
 
+    def sub[T <: AstNode](typ: String): Option[T] = {
+      (this >--> SUB filter { _.property[String]("type") exists { _ == typ } } map { _.end }).headOption.map { _.unbox.asInstanceOf[T] }
+    }
+
+    def collection[T <: AstNode](typ: String): Seq[T] = {
+      val collection = (this >--> SUB filter { _.property[String]("type") exists { _ == typ } } map { _.end }).headOption
+      val items = collection.map { _ >--> HAS map { _.end.unbox.asInstanceOf[T] } } map { _.toSeq }
+      items.getOrElse(Seq())
+    }
+
+    def unboxTyped[T <: AstNode]: T = {
+      unbox match {
+        case correct: AstNode if correct.isInstanceOf[T] => correct.asInstanceOf[T]
+        case _ => throw new Exception("Invalid type of node " + this)
+      }
+    }
+
     def unbox: AstNode = {
       val firstLabel = underlyingNode.getLabels.toArray.head.name
       firstLabel match {
         case "Expr_ConstFetch" => Expr_ConstFetch(underlyingNode ! "name")
-        case "Expr_Array" => Expr_Array()
+        case "Expr_ArrayItem" => Expr_ArrayItem(sub[Expr]("value").getOrElse(Expr_Unknown()), sub[Expr]("key"), property[Boolean]("byRef").getOrElse(false))
+        case "Expr_Array" => Expr_Array(collection[Expr_ArrayItem]("items"))
         case "Scalar_DNumber" => Scalar_DNumber(underlyingNode ! "value")
         case "Scalar_LNumber" => Scalar_LNumber(underlyingNode ! "value")
         case "Scalar_String" => Scalar_String(underlyingNode ! "value")
+
+        case "Scalar_MagicConst_Dir" => Scalar_MagicConst_Dir()
+        case "Scalar_MagicConst_Class" => Scalar_MagicConst_Class()
+        case "Scalar_MagicConst_Function" => Scalar_MagicConst_Function()
+        case "Scalar_MagicConst_Namespace" => Scalar_MagicConst_Namespace()
+        case "Scalar_MagicConst_Trait" => Scalar_MagicConst_Trait()
+
+        case "Expr_BinaryOp_BooleanAnd" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_BooleanOr" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_Equal" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_Greater" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_GreaterOrEqual" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_Identical" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_LogicalAnd" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_LogicalOr" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_LogicalXor" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_NotEqual" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_NotIdentical" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_Smaller" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_SmallerOrEqual" => Expr_BinaryOp_BooleanAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+
+        case "Expr_BinaryOp_BitwiseAnd" => Expr_BinaryOp_BitwiseAnd(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_BitwiseOr" => Expr_BinaryOp_BitwiseOr(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_BitwiseXor" => Expr_BinaryOp_BitwiseXor(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_ShiftLeft" => Expr_BinaryOp_ShiftLeft(sub[Expr]("left").get, sub[Expr]("right").get)
+        case "Expr_BinaryOp_ShiftRight" => Expr_BinaryOp_ShiftRight(sub[Expr]("left").get, sub[Expr]("right").get)
+
+        case "Expr_BinaryOp_Concat" => Expr_BinaryOp_Concat(sub[Expr]("left").get, sub[Expr]("right").get)
+
         case _ =>
           Logger.warn(s"Unknown node label $firstLabel")
           Unknown()

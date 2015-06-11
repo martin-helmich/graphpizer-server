@@ -8,15 +8,13 @@ case class DataType(name: String, primitive: Boolean, collection: Boolean = fals
     name.toLowerCase.replace("\\", "-").replace("<", "--").replace(">", "")
   }
 
-  def query = {
-    new Query(
-      ModelLabelType.Type,
-      Map(
-        "name" -> name,
-        "primitive" -> Boolean.box(primitive),
-        "collection" -> Boolean.box(collection)
-      )
+  def query = new Query(
+    ModelLabelType.Type,
+    Map(
+      "name" -> name,
+      "primitive" -> Boolean.box(primitive),
+      "collection" -> Boolean.box(collection)
     )
-  }
+  )
 
 }

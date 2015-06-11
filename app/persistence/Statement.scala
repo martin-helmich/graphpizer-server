@@ -8,7 +8,7 @@ import scala.collection.JavaConverters._
 
 class Statement(graph: GraphDatabaseService, cypher: String) {
 
-  val logger = Logger("cypher-statement")
+  val logger = Logger
 
   protected var params: Map[String, AnyRef] = null
 

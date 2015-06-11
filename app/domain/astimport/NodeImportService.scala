@@ -3,16 +3,22 @@ package domain.astimport
 import akka.actor.{Actor, ActorLogging}
 import akka.event.LoggingReceive
 import controllers.dto.ImportDataSet
+import domain.model.AstNodeTypes._
+import domain.model.ModelEdgeType._
 import org.neo4j.graphdb
 import org.neo4j.graphdb._
-import persistence.ConnectionManager
+import persistence.{Query, BackendInterface, ConnectionManager}
 import persistence.NodeWrappers._
 import util.WrappingActorLogging
+import domain.model.ModelLabelType._
 
 import scala.collection.JavaConversions._
 
 class NodeImportService(manager: ConnectionManager) extends Actor with WrappingActorLogging with ActorLogging {
+
   import NodeImportService._
+
+  var types = new Types()
 
   def receive = LoggingReceive {
     case ImportRequest(project, data) => importData(project, data)
@@ -31,6 +37,8 @@ class NodeImportService(manager: ConnectionManager) extends Actor with WrappingA
 
   def importData = (project: String, data: ImportDataSet) => withLog(s"Importing ${data.nodes.size } nodes.") exec {
     manager connect project transactional { (b, t) =>
+      buildPrimitiveDataTypes(b)
+
       val knownNodes = data.nodes.map { dto =>
         dto.merge match {
           case Some(true) =>
@@ -49,6 +57,37 @@ class NodeImportService(manager: ConnectionManager) extends Actor with WrappingA
             dto.labels.foreach { l => node.addLabel(b createLabel l) }
             dto.properties.foreach { case (key, value) => node(key) = value }
 
+            val possibleType = dto.labels.head match {
+              case "Scalar_LNumber" |
+                   "Expr_BinaryOp_BitwiseAnd" |
+                   "Expr_BinaryOp_BitwiseOr" |
+                   "Expr_BinaryOp_BitwiseXor" |
+                   "Expr_BinaryOp_ShiftLeft" |
+                   "Expr_BinaryOp_ShiftRight" => Some(types.integer)
+              case "Scalar_DNumber" => Some(types.double)
+              case "Scalar_String" |
+                   "Scalar_Encapsed" |
+                   "Expr_BinaryOp_Concat" => Some (types.string)
+              case s: String if s startsWith "Expr_MagicConst" => Some(types.string)
+              case "Expr_Array" => Some(types.array)
+              case "Expr_BinaryOp_BooleanAnd" |
+                   "Expr_BinaryOp_BooleanOr" |
+                   "Expr_BinaryOp_Equal" |
+                   "Expr_BinaryOp_Greater" |
+                   "Expr_BinaryOp_GreaterOrEqual" |
+                   "Expr_BinaryOp_Identical" |
+                   "Expr_BinaryOp_LogicalAnd" |
+                   "Expr_BinaryOp_LogicalOr" |
+                   "Expr_BinaryOp_LogicalXor" |
+                   "Expr_BinaryOp_NotEqual" |
+                   "Expr_BinaryOp_NotIdentical" |
+                   "Expr_BinaryOp_Smaller" |
+                   "Expr_BinaryOp_SmallerOrEqual" => Some(types.boolean)
+              case _ => None
+            }
+
+            possibleType foreach { node --| POSSIBLE_TYPE |--> _ }
+
             (dto.id, node)
         }
       }.toMap
@@ -57,16 +96,41 @@ class NodeImportService(manager: ConnectionManager) extends Actor with WrappingA
         val start = knownNodes(dto.from)
         val end = knownNodes(dto.to)
 
-        val rel: Relationship = start --| dto.label |--> end <
+        val rel = (start --| dto.label |--> end).<
 
         dto.properties.foreach { case (key, value) => rel(key) = value }
       }
     }
   }
 
+  protected def buildPrimitiveDataTypes(backend: BackendInterface) = {
+    val buildType = (name: String, collection: Boolean) => {
+      backend.nodes.merge(
+        new Query(
+          Type,
+          Map("name" -> name, "primitive" -> Boolean.box(true), "collection" -> Boolean.box(collection))
+        )
+      )
+    }
+
+    types.integer = buildType("integer", false)
+    types.double = buildType("double", false)
+    types.string = buildType("string", false)
+    types.array = buildType("array", true)
+    types.boolean = buildType("boolean", false)
+  }
+
 }
 
 object NodeImportService {
+
+  class Types {
+    var integer: Node = null
+    var double: Node = null
+    var string: Node = null
+    var array: Node = null
+    var boolean: Node = null
+  }
 
   case class ImportRequest(project: String, data: ImportDataSet)
 
