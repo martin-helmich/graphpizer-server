@@ -13,9 +13,9 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
   protected var params: Map[String, AnyRef] = null
 
   def run(): Result = {
-    logger.info(s"Executing cypher statement $cypher")
+    //logger.info(s"Executing cypher statement $cypher")
     val result = if (params != null) graph.execute(cypher, params) else graph.execute(cypher)
-    logger.info(s"Done")
+    //logger.info(s"Done")
     result
   }
 
@@ -103,6 +103,22 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
         val y = convertColumn[Y](1, columns, row)
         val z = convertColumn[Z](2, columns, row)
         m(x, y, z)
+      }
+    } finally {
+      result.close()
+    }
+  }
+  def foreach[X, Y, Z, X1](m: (X, Y, Z, X1) => _): Unit = {
+    val result = run()
+    val columns = result.columns()
+    try {
+      result foreach { (row) =>
+        m(
+          convertColumn[X](0, columns, row),
+          convertColumn[Y](1, columns, row),
+          convertColumn[Z](2, columns, row),
+          convertColumn[X1](3, columns, row)
+        )
       }
     } finally {
       result.close()

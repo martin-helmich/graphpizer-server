@@ -2,6 +2,7 @@ package domain.modelgeneration
 
 import domain.modelgeneration.Generator.RunOptions
 import domain.modelgeneration.typeinference.TypeInferer
+import play.api.Logger
 
 class Generator(namespaceResolver: NamespaceResolver,
                 classResolver: ClassResolver,
@@ -9,14 +10,18 @@ class Generator(namespaceResolver: NamespaceResolver,
                 usageAnalyzer: UsageAnalyzer) {
 
   def run(options: RunOptions) = {
-    namespaceResolver.run()
-    classResolver.run()
+    Logger.info("Run configuration: " + options)
 
-    if (options.withTypeInference) {
-      typeInferer.run()
-    }
+    //namespaceResolver.run()
+    //classResolver.run()
+
+    //if (options.withTypeInference) {
+    //  Logger.info("Starting type inference")
+    //  typeInferer.run()
+    //}
 
     if (options.withUsage) {
+      Logger.info("Starting usage analysis")
       usageAnalyzer.run()
     }
   }

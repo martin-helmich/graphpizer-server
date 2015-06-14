@@ -188,7 +188,7 @@ object NodeWrappers {
 
         case _ =>
           Logger.warn(s"Unknown node label $firstLabel")
-          Unknown()
+          Expr_Unknown()
       }
     }
 

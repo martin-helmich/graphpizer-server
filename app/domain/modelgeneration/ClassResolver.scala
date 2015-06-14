@@ -66,7 +66,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           clazz("namespace") = namespaceStmt("name")
           clazz("fqcn") = fqcn
         } else {
-          clazz("namespace") = null
+          //clazz[String]("namespace") = null
           clazz("fqcn") = clazz("name")
         }
 
@@ -139,6 +139,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
             case "true" | "false" => DataType("boolean", primitive = true)
             case _ =>
           }
+          case Expr_Array(_) => DataType("array", primitive = true, collection = true)
           case _ => Logger.warn(s"Unknown type ${default.getLabels }")
         }
 
