@@ -2,11 +2,17 @@ package util
 
 import akka.actor.ActorRef
 
+import scala.util.Failure
+
 object AkkaHelpers {
 
   class FutureReply(sender: ActorRef) {
-    def apply[T](x : (ActorRef) => T): T = {
-      x(sender)
+    def apply(x : (ActorRef) => Any): Unit = {
+      try {
+        x(sender)
+      } catch {
+        case e: Exception => sender ! Failure(e)
+      }
     }
   }
 

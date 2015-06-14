@@ -6,6 +6,11 @@
 GET           /                                                   @controllers.Application.index
 GET           /hello/:user                                        @controllers.Application.hello(user: String)
 
+GET           /queries                                            @controllers.StoredQueries.list
+GET           /queries/:id                                        @controllers.StoredQueries.show(id: java.util.UUID)
+DELETE        /queries/:id                                        @controllers.StoredQueries.delete(id: java.util.UUID)
+POST          /queries                                            @controllers.StoredQueries.create
+
 GET           /projects                                           @controllers.Projects.list
 PUT           /projects/:slug                                     @controllers.Projects.upsert(slug: String)
 GET           /projects/:slug                                     @controllers.Projects.show(slug: String)
