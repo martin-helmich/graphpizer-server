@@ -1,6 +1,20 @@
 define ['angular', '../Application', '../resources/Project'], (angular, app) ->
-  app.controller 'CypherCtrl', ['$scope', '$location', '$http', 'ProjectService',
-    ($scope, $location, $http, ProjectService) ->
+  app.controller 'CypherCtrl', ['$scope', '$location', '$http', 'ProjectService', 'StoredQuery',
+    ($scope, $location, $http, ProjectService, StoredQuery) ->
+      $scope.storedQueries = StoredQuery.query()
+      $scope.loadQuery = (query) ->
+        if $scope.activeQuery == query
+          $scope.cypher = undefined
+          $scope.activeQuery = undefined
+        else
+          $scope.cypher = query.cypher
+          $scope.activeQuery = query
+
+      $scope.saveQuery = (cypher) ->
+        if not $scope.activeQuery?
+          query = new StoredQuery cypher: cypher
+          query.$save -> $scope.storedQueries = StoredQuery.query()
+
       ProjectService.current().then (project) ->
         $scope.execute = (cypher, graph) ->
           q =

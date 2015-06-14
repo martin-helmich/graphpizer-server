@@ -57,7 +57,7 @@ class StoredQueryRepository extends Actor with ActorLogging {
   }
 
   protected def mapResult(r: Row): StoredQuery = r match {
-    case Row(id: UUID, cypher: Clob) => StoredQuery(id, cypher.toString)
+    case Row(id: UUID, cypher: Clob) => StoredQuery(id, cypher.getSubString(1, cypher.length().asInstanceOf[Int]))
   }
 
 }
