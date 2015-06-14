@@ -6,7 +6,7 @@ import org.neo4j.graphdb._
 import persistence.ConnectionManager
 import play.api.libs.json._
 import play.api.mvc.{BodyParsers, Action, Controller}
-import views.cypher.{TableResultView, GraphResultView}
+import views.cypher.{DotResultView, TableResultView, GraphResultView}
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,7 +17,7 @@ class Cypher @Inject()(manager: ConnectionManager) extends Controller {
   import Cypher._
   import controllers.helpers.JsonHelpers._
 
-  def execute(project: String) = Action.async(BodyParsers.parse.json) { request =>
+  def execute(project: String, format: String) = Action.async(BodyParsers.parse.json) { request =>
     Future {
       implicit val objectReads = new JsonObjectReads()
       implicit val reads = Json.reads[Query]
@@ -25,9 +25,10 @@ class Cypher @Inject()(manager: ConnectionManager) extends Controller {
         errors => {BadRequest(JsError.toFlatJson(errors)) },
         query => {
           try {
-            val view = query.graph match {
-              case Some(true) => new GraphResultView
-              case _ => new TableResultView
+            val view = (query.graph.getOrElse(false), format) match {
+              case (_, "dot") => new DotResultView
+              case (true, "json") => new GraphResultView
+              case (false, "json") => new TableResultView
             }
 
             manager connect project transactional { (b, _) =>

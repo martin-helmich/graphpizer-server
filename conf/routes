@@ -35,7 +35,8 @@ GET           /projects/:project/model/interfaces/:iface          @controllers.I
 GET           /projects/:project/model/types                      @controllers.Types.list(project: String)
 GET           /projects/:project/model/types/:typ                 @controllers.Types.show(project: String, typ: Long)
 
-POST          /projects/:project/cypher                           @controllers.Cypher.execute(project: String)
+POST          /projects/:project/cypher                           @controllers.Cypher.execute(project: String, format="json")
+POST          /projects/:project/cypher/dot                       @controllers.Cypher.execute(project: String, format="dot")
 
 # Map static resources from the /public folder to the /assets URL path
 GET           /assets/*file                                       controllers.Assets.versioned(path="/public", file: Asset)
