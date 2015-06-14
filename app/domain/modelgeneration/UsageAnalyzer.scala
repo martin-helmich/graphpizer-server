@@ -12,12 +12,138 @@ import scala.collection.mutable
 
 class UsageAnalyzer(backend: BackendInterface) {
 
-  def run(): Unit = {
-    //val known = mutable.Map[(String, String), Boolean]()
-    //val types = mutable.Map[String, Node]()
-    val known = new Registry[(String, String)]()
-    val types = new TypeContainer(backend)
+  val known = new Registry[(String, String)]()
+  val types = new TypeContainer(backend)
 
+  protected val handleUsage = (typeName: String, klassName: String, klass: Node) => {
+    known once(typeName, klassName) exec {
+      klass --| USES |--> (types get typeName)
+      Logger.info(s"$klassName --[USES]--> $typeName")
+    }
+  }
+
+  def run(): Unit = {
+    usagesFromConstructorCalls()
+    usagesFromPropertyDefinitions()
+    usagesFromStaticMethodCalls()
+    usagesFromMethodDefinitions()
+    usagesFromMethodParameters()
+    usagesFromCatchStatements()
+    usagesFromConstantUsages()
+
+    val knownPackageDependencies = new Registry[(String, String)]()
+    backend transactional { (_,_) =>
+      val cypher =
+        """MATCH (p1:Package)-[:CONTAINS_FILE]->(:File)
+          |                  -[:HAS|SUB*]->()
+          |                 <-[:DEFINED_IN]-(user)
+          |                  -[:USES]->(:Type)
+          |                  -[:IS]->(usee)
+          |                  -[:DEFINED_IN]->()
+          |                 <-[:HAS|SUB*]-(:File)
+          |                 <-[:CONTAINS_FILE]-(p2:Package)
+          |WHERE (user:Class OR user:Interface OR user:Trait) AND
+          |      (usee:Class OR usee:Interface OR usee:Trait) AND
+          |      p1 <> p2
+          |RETURN p1, p2""".stripMargin
+
+      backend execute cypher foreach { (user: Node, usee: Node) =>
+        val (userName, useeName) = (user.property[String]("name").get, usee.property[String]("name").get)
+        knownPackageDependencies once (userName, useeName) exec {
+          user --| DEPENDS_ON |--> usee
+          Logger.info(s"$userName --[DEPENDS_ON]--> $useeName")
+        }
+      }
+    }
+  }
+
+  protected def usagesFromConstantUsages(): Unit = {
+    backend transactional { (_, _) =>
+      val cypher =
+        """MATCH (name:Name)<-[:SUB {type: "class"}]-(:Expr_ClassConstFetch)<-[:SUB|HAS*]-(:Stmt_Class)<-[:DEFINED_IN]-(class) WHERE NOT (name.allParts IN ["self", "parent"])
+          |RETURN name.fullName, class.fqcn, class
+        """.stripMargin
+      backend execute cypher foreach {
+        handleUsage
+      }
+    }
+  }
+
+  protected def usagesFromCatchStatements(): Unit = {
+    backend transactional { (_, _) =>
+      val cypher =
+        """MATCH (name:Name)<-[:SUB {type: "type"}]->(c:Stmt_Catch)<-[:SUB|HAS*]-(:Stmt_Class)<-[:DEFINED_IN]-(class)
+          |RETURN name.fullName, class.fqcn, class
+        """.stripMargin
+      backend execute cypher foreach {
+        handleUsage
+      }
+    }
+  }
+
+  protected def usagesFromMethodParameters(): Unit = {
+    backend transactional { (_, _) =>
+      val cypher =
+        """MATCH (name:Name)<-[:SUB {type: "type"}]-(p:Param)
+          |                 <-[:HAS]-(:Collection)
+          |                 <-[:SUB {type: "params"}]-(:Stmt_ClassMethod)
+          |                 <-[:HAS]-(:Collection)
+          |                 <-[:SUB {type: "stmts"}]-(:Stmt_Class)
+          |                 <-[:DEFINED_IN]-(c:Class)
+          |WHERE name.fullName IS NOT NULL AND (p.type IN ["array", "callable"]) = false
+          |RETURN name.fullName, c.fqcn, c""".stripMargin
+      backend execute cypher foreach {
+        handleUsage
+      }
+    }
+  }
+
+  def usagesFromMethodDefinitions(): Unit = {
+    backend transactional { (_, _) =>
+      val cypher = """MATCH (c:Class)-[:HAS_METHOD]->(m:Method)-[:POSSIBLE_TYPE]->(t:Type) WHERE t.primitive=false RETURN t, c"""
+      backend execute cypher foreach { (typ: Node, klass: Node) =>
+        val klassName: String = klass.property("fqcn").get
+        val typName: String = typ.property("name").get
+
+        known once(typName, klassName) exec {
+          klass --| USES |--> typ
+        }
+      }
+    }
+  }
+
+  def usagesFromStaticMethodCalls(): Unit = {
+    backend transactional { (_, _) =>
+      val cypher =
+        """MATCH (name:Name)<-[:SUB {type: "class"}]-(call:Expr_StaticCall)
+          |                 <-[:SUB|HAS*]-(:Stmt_ClassMethod)
+          |                 <-[:HAS]-()
+          |                 <-[:SUB {type: "stmts"}]-(:Stmt_Class)
+          |                 <-[:DEFINED_IN]-(c:Class)
+          |WHERE call.class <> "parent" AND name.fullName IS NOT NULL
+          |RETURN name.fullName, c.fqcn, c""".stripMargin
+
+      backend execute cypher foreach {
+        handleUsage
+      }
+    }
+  }
+
+  def usagesFromPropertyDefinitions(): Unit = {
+    backend transactional { (_, _) =>
+      val cypher = """MATCH (p:Property)-[:POSSIBLE_TYPE]->(t:Type), (p)<-[:HAS_PROPERTY]-(c:Class) WHERE t.primitive=false RETURN t, c"""
+      backend execute cypher foreach { (typ: Node, klass: Node) =>
+        val klassName = klass.property[String]("name").get
+        val typName = typ.property[String]("name").get
+
+        known once(typName, klassName) exec {
+          klass --| USES |--> typ
+        }
+      }
+    }
+  }
+
+  def usagesFromConstructorCalls(): Unit = {
     backend transactional { (_, _) =>
       val cypher =
         """MATCH (name:Name)<-[:SUB {type: "class"}]-(new:Expr_New)
@@ -35,78 +161,6 @@ class UsageAnalyzer(backend: BackendInterface) {
 
         call --| INSTANTIATES |--> typeNode
         Logger.info(call.id + " --[INSTANTIATES]--> " + name)
-      }
-    }
-
-
-    backend transactional { (_, _) =>
-      val cypher = """MATCH (p:Property)-[:POSSIBLE_TYPE]->(t:Type), (p)<-[:HAS_PROPERTY]-(c:Class) WHERE t.primitive=false RETURN t, c"""
-      backend execute cypher foreach { (typ: Node, klass: Node) =>
-        val klassName = klass.property[String]("name").get
-        val typName = typ.property[String]("name").get
-        known once(typName, klassName) exec {
-          klass --| USES |--> typ
-        }
-      }
-    }
-
-
-
-    backend transactional { (_, _) =>
-      val cypher =
-        """MATCH (name:Name)<-[:SUB {type: "class"}]-(call:Expr_StaticCall)
-          |                 <-[:SUB|HAS*]-(:Stmt_ClassMethod)
-          |                 <-[:HAS]-()
-          |                 <-[:SUB {type: "stmts"}]-(:Stmt_Class)
-          |                 <-[:DEFINED_IN]-(c:Class)
-          |WHERE call.class <> "parent" AND name.fullName IS NOT NULL
-          |RETURN name.fullName, c.fqcn, c""".stripMargin
-
-      backend execute cypher foreach { (name: String, klassName: String, klass: Node) =>
-        known once(name, klassName) exec {
-          val typeNode = types get name
-          klass --| USES |--> typeNode
-          Logger.info(klass.property[String]("fqcn").get + " --[USES]--> " + name)
-        }
-      }
-    }
-
-    val stmts = Seq(
-      //"""MATCH (name:Name)<-[:SUB {type: "class"}]-(new:Expr_New)<-[:SUB|HAS*]-(:Stmt_Class)<-[:DEFINED_IN]-(c:Class) WHERE name.fullName IS NOT NULL
-      //  |MERGE (type:Type{name:name.fullName, primitive: false, collection: false})
-      //  |MERGE (type)<-[:INSTANTIATES]-(new)
-      //  |MERGE (c)-[r:USES]->(type) ON MATCH SET r.count = r.count + 1 ON CREATE SET r.count = 1""".stripMargin,
-      //"""MATCH (p:Property)-[:POSSIBLE_TYPE]->(t:Type) WHERE t.primitive=false
-      //  |MATCH (p)<-[:HAS_PROPERTY]-(c:Class)
-      //  |MERGE (c)-[r:USES]->(t) ON MATCH SET r.count = r.count + 1 ON CREATE SET r.count = 1""".stripMargin,
-      """MATCH (m:Method)-[:POSSIBLE_TYPE]->(t:Type) WHERE t.primitive=false
-        |MATCH (m)<-[:HAS_METHOD]-(c:Class)
-        |MERGE (c)-[r:USES]->(t) ON MATCH SET r.count = r.count+1 ON CREATE SET r.count=1""".stripMargin,
-      """MATCH (name:Name)<-[:SUB {type: "type"}]-(p:Param)<--()<--(:Stmt_ClassMethod)<--()<-[:SUB {type: "stmts"}]-(:Stmt_Class)<-[:DEFINED_IN]-(c:Class) WHERE name.fullName IS NOT NULL AND (p.type IN ["array", "callable"]) = false
-        |MERGE (type:Type {name: name.fullName, primitive: false, collection: false})
-        |MERGE (type)<-[:HAS_TYPE]-(p)
-        |MERGE (c)-[r:USES]->(type) ON MATCH SET r.count=r.count+1 ON CREATE SET r.count=1""".stripMargin,
-      //"""MATCH (name:Name)<-[:SUB {type: "class"}]-(call:Expr_StaticCall)<-[:SUB|HAS*]-(:Stmt_ClassMethod)<-[:HAS]-()<-[:SUB {type: "stmts"}]-(:Stmt_Class)<-[:DEFINED_IN]-(c:Class) WHERE call.class <> "parent" AND name.fullName IS NOT NULL
-      //  |MERGE (type:Type {name: name.fullName, primitive: false, collection: false})
-      //  |MERGE (c)-[r:USES]->(type) ON MATCH SET r.count = r.count + 1 ON CREATE SET r.count = 1""".stripMargin,
-      """MATCH (name:Name)<-[:SUB {type: "type"}]->(c:Stmt_Catch)<-[:SUB|HAS*]-(:Stmt_Class)<-[:DEFINED_IN]-(class)
-        |MERGE (type:Type {name: name.fullName, primitive: false, collection: false})
-        |MERGE (class)-[r:USES]->(type) ON MATCH SET r.count = r.count +1 ON CREATE SET r.count = 1""".stripMargin,
-      """MATCH (name:Name)<-[:SUB {type: "class"}]-(:Expr_ClassConstFetch)<-[:SUB|HAS*]-(:Stmt_Class)<-[:DEFINED_IN]-(class) WHERE NOT (name.allParts IN ["self", "parent"])
-        |MERGE (type:Type {name: name.fullName, primitive: false, collection: false})
-        |MERGE (class)-[r:USES]->(type) ON MATCH SET r.count = r.count + 1 ON CREATE SET r.count = 1""".stripMargin
-    )
-
-    stmts foreach { cypher =>
-      try {
-        Logger.info(s"Executing cypher query $cypher")
-
-        backend transactional { (_, _) =>
-          backend.execute(cypher).run().close()
-        }
-        Logger.info("Done")
-      } catch {
-        case e: Exception => Logger.error(s"Exception while executing cypher statement $cypher", e)
       }
     }
   }
