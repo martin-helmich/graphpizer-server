@@ -42,12 +42,12 @@ require [
     .when '/projects/:project/delete',
       templateUrl: 'assets/partials/project/confirmdelete.html'
       controller: 'ProjectDeleteCtrl'
-    .when '/projects/:project/source/packages',
-      templateUrl: 'assets/partials/source/packages.html'
-      controller: 'PackageCtrl'
     .when '/projects/:project/source/files',
       templateUrl: 'assets/partials/source/files.html'
       controller: 'FileCtrl'
+    .when '/projects/:project/model/packages',
+      templateUrl: 'assets/partials/model/packages.html'
+      controller: 'PackageCtrl'
     .when '/projects/:project/model/classes',
       templateUrl: 'assets/partials/model/classes.html'
       controller: 'ClassCtrl'
