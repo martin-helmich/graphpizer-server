@@ -5,6 +5,7 @@ import domain.model.ModelEdgeType._
 import org.neo4j.graphdb.Node
 import persistence.BackendInterface
 import persistence.NodeWrappers._
+import play.api.Logger
 import scala.collection.JavaConversions._
 
 class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMapper: TypeMapper, maxIterationCount: Integer = 10) {
@@ -41,12 +42,16 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
                           .scope(method("name").get)
 
         backend execute variableCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node) =>
-          symbolTable.addSymbol(variable("name").get)
+          variable.property[String]("name") match {
+            case Some(name) => symbolTable.addSymbol(name)
+            case _ => Logger.warn("Variable statement " + variable + " does not have a name!")
+          }
         }
 
         symbolTable.addTypeForSymbol("this", typeMapper.mapNodeToType(klassType))
 
-        parameters filter { symbolTable hasSymbol _("name").get } foreach { p =>
+        //parameters filter { symbolTable hasSymbol _("name").get } foreach { p =>
+        parameters filter { _.property[String]("name").exists { n => symbolTable.hasSymbol(n) } } foreach { p =>
           p >--> POSSIBLE_TYPE foreach { t =>
             symbolTable.addTypeForSymbol(p("name").get, typeMapper.mapNodeToType(t.end))
           }
@@ -54,7 +59,7 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
 
         backend execute assignmentCypher params Map("node" -> Long.box(method.id)) foreach { (variable: Node, types: java.util.List[Node]) =>
           types foreach { t =>
-            variable[String]("name") foreach {
+            variable.property[String]("name") foreach {
               symbolTable.addTypeForSymbol(_, typeMapper.mapNodeToType(t))
             }
           }
@@ -82,9 +87,13 @@ class TypeInferencePass(backend: BackendInterface, symbols: SymbolTable, typeMap
   }
 
   protected def query(cypher: String): Unit = {
+    Logger.info(s"Running cypher $cypher")
     val res = backend.execute(cypher).run()
+    Logger.info("Done")
     try {
       val stats = res.getQueryStatistics
+
+      Logger.info("Affected " + (stats.getRelationshipsCreated + stats.getNodesCreated))
 
       affected += stats.getRelationshipsCreated
       affected += stats.getNodesCreated

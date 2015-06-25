@@ -22,7 +22,7 @@ class Model @Inject()(manager: ConnectionManager, factory: GeneratorFactory, act
   val projects = actorSystem.actorOf(Props[ProjectRepository], "projects")
 
   def generate(project: String) = Action {
-    val options = new RunOptions(true, true)
+    val options = new RunOptions(withUsage = true, withTypeInference = true)
 
     val generator = factory forProject project
     val result = Future { generator.run(options) }

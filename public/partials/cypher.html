@@ -5,6 +5,8 @@
     </h1>
 </div>
 
+<div class="row">
+    <div class="col-md-8">
 <form>
     <div ng-class="{'form-group': true, 'has-error': inpError}">
         <label class="control-label" for="cypher">Your query</label>
@@ -18,12 +20,26 @@
         <input type="checkbox" ng-model="graph" id="graph" />
     </div>
     <div class="form-group">
-        <button class="btn btn-primary" ng-click="execute(cypher, graph)">
+        <button class="btn btn-primary" ng-click="execute(cypher, graph)" ng-disabled="!cypher">
             <i class="glyphicon glyphicon-play"></i>
             Execute!
         </button>
+
+        <button class="btn btn-default" ng-click="saveQuery(cypher)" ng-disabled="!cypher">
+            <i class="glyphicon glyphicon-save"></i>
+            Save
+        </button>
     </div>
 </form>
+    </div>
+    <div class="col-md-4">
+        <div class="list-group">
+            <a class="list-group-item" ng-click="loadQuery(query)" ng-repeat="query in storedQueries" ng-class="{active: query == activeQuery}">
+                <p class="list-group-item-text"><code>{{ query.cypher }}</code></p>
+            </a>
+        </div>
+    </div>
+</div>
 
 <div ng-if="data && graph">
     <hr />

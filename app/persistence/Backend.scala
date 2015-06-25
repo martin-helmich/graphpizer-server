@@ -17,6 +17,7 @@ trait BackendInterface {
   def createEdgeType(name: String): RelationshipType
 
   def transactional[T](func: (BackendInterface, Transaction) => T): T
+  def transactionalDebug[T](func: (BackendInterface, Transaction) => T): T
 
   def execute(cypher: String): Statement
 
@@ -61,6 +62,27 @@ class Backend(graph: GraphDatabaseService) extends BackendInterface {
         throw e
     } finally {
       tx.close()
+    }
+  }
+  def transactionalDebug[T](func: (BackendInterface, Transaction) => T): T = {
+    Logger.info("Starting transaction")
+    val tx = graph.beginTx()
+    try {
+      Logger.info("Evaluation function")
+      val result = func(this, tx)
+      tx.success()
+      Logger.info("Success")
+      result
+    } catch {
+      case e: Exception =>
+        Logger.error(e.getMessage, e)
+        tx.failure()
+        Logger.error("Error", e)
+        throw e
+    } finally {
+      Logger.info("closing")
+      tx.close()
+      Logger.info("closed")
     }
   }
 

@@ -6,6 +6,11 @@
 GET           /                                                   @controllers.Application.index
 GET           /hello/:user                                        @controllers.Application.hello(user: String)
 
+GET           /queries                                            @controllers.StoredQueries.list
+GET           /queries/:id                                        @controllers.StoredQueries.show(id: java.util.UUID)
+DELETE        /queries/:id                                        @controllers.StoredQueries.delete(id: java.util.UUID)
+POST          /queries                                            @controllers.StoredQueries.create
+
 GET           /projects                                           @controllers.Projects.list
 PUT           /projects/:slug                                     @controllers.Projects.upsert(slug: String)
 GET           /projects/:slug                                     @controllers.Projects.show(slug: String)
@@ -35,7 +40,8 @@ GET           /projects/:project/model/interfaces/:iface          @controllers.I
 GET           /projects/:project/model/types                      @controllers.Types.list(project: String)
 GET           /projects/:project/model/types/:typ                 @controllers.Types.show(project: String, typ: Long)
 
-POST          /projects/:project/cypher                           @controllers.Cypher.execute(project: String)
+POST          /projects/:project/cypher                           @controllers.Cypher.execute(project: String, format="json")
+POST          /projects/:project/cypher/:format                   @controllers.Cypher.execute(project: String, format: String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET           /assets/*file                                       controllers.Assets.versioned(path="/public", file: Asset)

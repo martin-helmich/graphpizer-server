@@ -4,4 +4,5 @@ define [
   './Package',
   './Project',
   './ProjectModel',
+  './StoredQuery',
 ], () ->

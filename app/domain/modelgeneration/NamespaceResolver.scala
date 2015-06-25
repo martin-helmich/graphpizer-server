@@ -27,8 +27,8 @@ class NamespaceResolver(backend: BackendInterface) {
 
   protected def treatUnnamespacedNodes(): Unit = {
     backend transactional { (b, t) =>
-      val cypher = """MATCH (c:Collection)-[:HAS]->(ns)-[:SUB|HAS*]->(n:Name)
-                      WHERE c.fileRoot = true AND NOT ns:Stmt_Namespace
+      val cypher = """MATCH (c:Collection:File)-[:HAS]->(ns)-[:SUB|HAS*]->(n:Name)
+                      WHERE NOT ns:Stmt_Namespace
                       SET n.fullName = n.allParts"""
       b.execute(cypher).run().close()
     }
