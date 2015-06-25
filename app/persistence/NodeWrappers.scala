@@ -154,7 +154,15 @@ object NodeWrappers {
         case "Expr_ConstFetch" => Expr_ConstFetch(underlyingNode ! "name")
         case "Expr_ArrayItem" => Expr_ArrayItem(sub[Expr]("value").getOrElse(Expr_Unknown()), sub[Expr]("key"), property[Boolean]("byRef").getOrElse(false))
         case "Expr_Array" => Expr_Array(collection[Expr_ArrayItem]("items"))
-        case "Scalar_DNumber" => Scalar_DNumber(underlyingNode ! "value")
+        //case "Scalar_DNumber" => Scalar_DNumber(underlyingNode ! "value")
+        case "Scalar_DNumber" => underlyingNode.getProperty("value") match {
+          case i: java.lang.Integer => Scalar_DNumber(i.toDouble)
+          case l: java.lang.Long => Scalar_DNumber(l.toDouble)
+          case d: java.lang.Double => Scalar_DNumber(d)
+          case unknown =>
+            Logger.error("Value of DNumber node " + underlyingNode.id + " did not contain numeric value.")
+            Expr_Unknown()
+        }
         case "Scalar_LNumber" => Scalar_LNumber(underlyingNode ! "value")
         case "Scalar_String" => Scalar_String(underlyingNode ! "value")
 

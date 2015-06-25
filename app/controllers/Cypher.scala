@@ -6,7 +6,7 @@ import org.neo4j.graphdb._
 import persistence.ConnectionManager
 import play.api.libs.json._
 import play.api.mvc.{BodyParsers, Action, Controller}
-import views.cypher.{DotResultView, TableResultView, GraphResultView}
+import views.cypher.{TexTableResultView, DotResultView, JsonTableResultView, GraphResultView}
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -27,8 +27,9 @@ class Cypher @Inject()(manager: ConnectionManager) extends Controller {
           try {
             val view = (query.graph.getOrElse(false), format) match {
               case (_, "dot") => new DotResultView
+              case (_, "tex") => new TexTableResultView
               case (true, "json") => new GraphResultView
-              case (false, "json") => new TableResultView
+              case (false, "json") => new JsonTableResultView
             }
 
             manager connect project transactional { (b, _) =>
@@ -53,6 +54,6 @@ class Cypher @Inject()(manager: ConnectionManager) extends Controller {
 
 object Cypher {
 
-  case class Query(cypher: String, params: Map[String, AnyRef] = Map(), graph: Option[Boolean] = None)
+  case class Query(cypher: String, params: Option[Map[String, AnyRef]] = None, graph: Option[Boolean] = None)
 
 }

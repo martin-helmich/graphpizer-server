@@ -12,17 +12,22 @@ class Generator(namespaceResolver: NamespaceResolver,
   def run(options: RunOptions) = {
     Logger.info("Run configuration: " + options)
 
-    //namespaceResolver.run()
-    //classResolver.run()
+    try {
+      //namespaceResolver.run()
+      classResolver.run()
 
-    //if (options.withTypeInference) {
-    //  Logger.info("Starting type inference")
-    //  typeInferer.run()
-    //}
+      if (options.withTypeInference) {
+        Logger.info("Starting type inference")
+        typeInferer.run()
+      }
 
-    if (options.withUsage) {
-      Logger.info("Starting usage analysis")
-      usageAnalyzer.run()
+      if (options.withUsage) {
+        Logger.info("Starting usage analysis")
+        usageAnalyzer.run()
+      }
+    }
+    catch {
+      case e: Exception => Logger.error(e.getMessage, e)
     }
   }
 

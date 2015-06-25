@@ -108,6 +108,23 @@ class Statement(graph: GraphDatabaseService, cypher: String) {
       result.close()
     }
   }
+
+  def map[X, Y, Z, T](m: (X, Y, Z) => T): Seq[T] = {
+    val result = run()
+    val columns = result.columns()
+    try {
+      result.toArray map { r =>
+        (
+          convertColumn[X](0, columns, r),
+          convertColumn[Y](1, columns, r),
+          convertColumn[Z](2, columns, r)
+        ) } map { t => m(t._1, t._2, t._3) }
+    } finally {
+      result.close()
+    }
+  }
+
+
   def foreach[X, Y, Z, X1](m: (X, Y, Z, X1) => _): Unit = {
     val result = run()
     val columns = result.columns()

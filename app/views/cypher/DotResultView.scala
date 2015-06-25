@@ -6,7 +6,7 @@ import play.api.libs.json.{JsArray, Json}
 import views.cypher.JsonImplicits._
 import scala.collection.JavaConversions._
 
-class DotResultView extends CypherResultView {
+class DotResultView extends ResultView {
   override def apply(result: Result, columns: Seq[String]): AnyRef = {
     val nodes = (for (row <- result; column <- columns) yield {
       (row get column, column)

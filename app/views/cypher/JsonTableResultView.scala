@@ -6,7 +6,7 @@ import play.api.libs.json._
 import scala.collection.JavaConversions._
 import JsonImplicits._
 
-class TableResultView extends CypherResultView {
+class JsonTableResultView extends ResultView {
 
   override def apply(result: Result, columns: Seq[String]): AnyRef = {
     val json = result.map { r =>

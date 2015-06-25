@@ -22,12 +22,23 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
   private val logger = Logger
 
   def run(): Unit = {
-    backend transactional { (b, t) =>
+    val classes: Seq[(Node, Option[Node], String)] = backend transactionalDebug { (_, _) =>
       val cypher = """MATCH (cls:Stmt_Class)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(cls)   RETURN cls   AS cls, ns, "class"     AS type UNION
                       MATCH (iface:Stmt_Interface) OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(iface) RETURN iface AS cls, ns, "interface" AS type UNION
                       MATCH (trt:Stmt_Trait)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(trt)   RETURN trt   AS cls, ns, "trait"     AS type"""
 
-      backend execute cypher foreach { (classStmt: Node, namespaceStmt: Node, kind: String) =>
+      backend execute cypher map { (classStmt: Node, namespaceStmt: Node, kind: String) =>
+        (classStmt, Option(namespaceStmt), kind)
+      }
+    }
+
+    logger.info("Found " + classes.size + " class-like objects for processing")
+
+    classes foreach { m =>
+      logger.info("Processign " + m)
+      val (classStmt: Node, namespaceStmt: Option[Node], kind: String) = m
+      logger.info("Opening transaction")
+      backend transactionalDebug { (_, _) =>
         val label = kind match {
           case "class" => Class
           case "interface" => Interface
@@ -40,13 +51,14 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case _ => classRelations(0)
         }
 
-        val fqcn = if (namespaceStmt != null) {
-          (namespaceStmt.property[String]("name"), classStmt.property[String]("name")) match {
-            case (Some(namespace: String), Some(name: String)) => namespace + "\\" + name
-            case _ => classStmt.property[String]("name").get
-          }
-        } else {
-          classStmt.property[String]("name").get
+        val fqcn = namespaceStmt match {
+          case Some(ns) =>
+            (ns.property[String]("name"), classStmt.property[String]("name")) match {
+              case (Some(namespace: String), Some(name: String)) => namespace + "\\" + name
+              case _ => classStmt.property[String]("name").get
+            }
+          case None =>
+            classStmt.property[String]("name").get
         }
 
         println(s"Treating class $fqcn")
@@ -62,12 +74,12 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case _ => false
         }
 
-        if (namespaceStmt != null) {
-          clazz("namespace") = namespaceStmt("name")
-          clazz("fqcn") = fqcn
-        } else {
-          //clazz[String]("namespace") = null
-          clazz("fqcn") = clazz("name")
+        namespaceStmt match {
+          case Some(ns) =>
+            clazz("namespace") = ns("name")
+            clazz("fqcn") = fqcn
+          case None =>
+            clazz("fqcn") = clazz("name")
         }
 
         clazz --| DEFINED_IN |--> classStmt
@@ -81,23 +93,26 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
 
         extractMethodsForClass(classStmt, clazz, context)
       }
+    }
 
+    backend transactional { (_, _) =>
 
-      backend.execute("""MATCH (sub:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "extends"}]->(ename)
+      // TODO: Make more efficient!
+      backend.execute( """MATCH (sub:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "extends"}]->(ename)
                          MATCH (super:Class) WHERE super.fqcn=ename.fullName
                          MERGE (sub)-[:EXTENDS]->(super)""").run().close()
-      backend.execute("""MATCH (c:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "implements"}]->()-[:HAS]->(iname)
+      backend.execute( """MATCH (c:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "implements"}]->()-[:HAS]->(iname)
                          MATCH (i:Interface) WHERE i.fqcn=iname.fullName
                          MERGE (c)-[:IMPLEMENTS]->(i)""").run().close()
-      backend.execute("""MATCH (c:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "stmts"}]->()-[:HAS]->(:Stmt_TraitUse)-[:SUB {type: "traits"}]->()-[:HAS]->(tname)
+      backend.execute( """MATCH (c:Class)-[:DEFINED_IN]->(:Stmt_Class)-[:SUB {type: "stmts"}]->()-[:HAS]->(:Stmt_TraitUse)-[:SUB {type: "traits"}]->()-[:HAS]->(tname)
                          MATCH (t:Trait) WHERE t.fqcn = tname.fullName
                          MERGE (c)-[:USES_TRAIT]->(t)""").run().close()
 
-      backend.execute("""MATCH (m:Method)<-[:HAS_METHOD]-()-[:IMPLEMENTS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name
+      backend.execute( """MATCH (m:Method)<-[:HAS_METHOD]-()-[:IMPLEMENTS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name
                          MERGE (m)-[:IMPLEMENTS_METHOD]->(s)""").run().close()
-      backend.execute("""MATCH (m:Method)<-[:HAS_METHOD]-()-[:EXTENDS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name AND m.abstract=true
+      backend.execute( """MATCH (m:Method)<-[:HAS_METHOD]-()-[:EXTENDS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name AND m.abstract=true
                          MERGE (m)-[:IMPLEMENTS_METHOD]->(s)""").run().close()
-      backend.execute("""MATCH (m:Method)<-[:HAS_METHOD]-()-[:EXTENDS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name AND m.abstract=false
+      backend.execute( """MATCH (m:Method)<-[:HAS_METHOD]-()-[:EXTENDS]->()-[:HAS_METHOD]->(s) WHERE m.name=s.name AND m.abstract=false
                          MERGE (m)-[:OVERRIDES_METHOD]->(s)""").run().close()
     }
   }
@@ -140,7 +155,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
             case _ =>
           }
           case Expr_Array(_) => DataType("array", primitive = true, collection = true)
-          case _ => Logger.warn(s"Unknown type ${default.getLabels }")
+          case _ => Logger.warn(s"Unknown type ${default.getLabels}")
         }
 
         dataTypeFromDefault match {
@@ -167,7 +182,9 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
   }
 
   protected def extractMethodsForClass(classStmt: Node, clazz: Node, context: ImportContext) = {
-    val existingDefinitions = clazz >--> HAS_METHOD map { _.end } map { m => (m.property[String]("name").get, m) } toMap
+    val existingDefinitions = clazz >--> HAS_METHOD map {
+      _.end
+    } map { m => (m.property[String]("name").get, m) } toMap
     val cypher = """MATCH (cls)-[:SUB {type: "stmts"}]->()-->(m:Stmt_ClassMethod) WHERE id(cls)={cls} RETURN m"""
     val p: Map[String, AnyRef] = Map("cls" -> Long.box(classStmt.id))
 
@@ -201,12 +218,16 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
       methodDocComment.result match {
         case Some(ReturnTag(dataTypeName, _)) =>
           dataTypeName split "\\|" foreach { typename =>
-            typeResolver resolveType(typename, context) foreach { methodNode --| POSSIBLE_TYPE |--> mergeDataType(_) }
+            typeResolver resolveType(typename, context) foreach {
+              methodNode --| POSSIBLE_TYPE |--> mergeDataType(_)
+            }
           }
         case _ =>
       }
 
-      val existingParams = (methodNode >--> HAS_PARAMETER map { _.end } map { p => (p.property[String]("name").get, p) }).toMap
+      val existingParams = (methodNode >--> HAS_PARAMETER map {
+        _.end
+      } map { p => (p.property[String]("name").get, p) }).toMap
       backend execute
         """MATCH (m)-[:SUB {type: "params"}]->()-[:HAS]->(paramDefinition) WHERE id(m)={node}
           |OPTIONAL MATCH (paramDefinition)-[:SUB {type: "default"}]->(default)
@@ -226,15 +247,21 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         paramNode("byRef") = param.property[Boolean]("byRef") getOrElse false
         paramNode("hasDefaultValue") = default != null
 
-        param >--> SUB filter { _.property("type") == Some("type") } filter { _.end ? "fullName" } map { _.end } foreach { (typ: Node) =>
+        param >--> SUB filter {
+          _.property("type") == Some("type")
+        } filter {
+          _.end ? "fullName"
+        } map {
+          _.end
+        } foreach { (typ: Node) =>
           typ.property[String]("name") match {
             case Some("array") =>
             case _ =>
               typ.property[String]("fullName") match {
                 case Some(name: String) =>
-                  typeResolver resolveType (name, context) foreach { t =>
-                      println(s"Possible type from type hint: ${t.name}")
-                      paramNode --| POSSIBLE_TYPE |--> mergeDataType(t)
+                  typeResolver resolveType(name, context) foreach { t =>
+                    println(s"Possible type from type hint: ${t.name}")
+                    paramNode --| POSSIBLE_TYPE |--> mergeDataType(t)
                   }
                 case _ =>
               }
@@ -244,7 +271,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         methodDocComment param paramName match {
           case Some(ParamTag(vpn, dataTypeName: String, _)) if vpn == paramName =>
             dataTypeName split "\\|" foreach { typename =>
-              typeResolver resolveType (typename, context) foreach { t =>
+              typeResolver resolveType(typename, context) foreach { t =>
                 println(s"Possible type from doc comment: ${t.name}")
                 paramNode --| POSSIBLE_TYPE |--> mergeDataType(t)
               }

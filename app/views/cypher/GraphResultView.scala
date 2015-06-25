@@ -5,7 +5,7 @@ import play.api.libs.json.{JsArray, Json}
 import scala.collection.JavaConversions._
 import persistence.NodeWrappers._
 
-class GraphResultView extends CypherResultView{
+class GraphResultView extends ResultView{
 
   import JsonImplicits._
 
