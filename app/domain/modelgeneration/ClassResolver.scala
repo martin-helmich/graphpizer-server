@@ -22,7 +22,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
   private val logger = Logger
 
   def run(): Unit = {
-    val classes: Seq[(Node, Option[Node], String)] = backend transactionalDebug { (_, _) =>
+    val classes: Seq[(Node, Option[Node], String)] = backend transactional { (_, _) =>
       val cypher = """MATCH (cls:Stmt_Class)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(cls)   RETURN cls   AS cls, ns, "class"     AS type UNION
                       MATCH (iface:Stmt_Interface) OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(iface) RETURN iface AS cls, ns, "interface" AS type UNION
                       MATCH (trt:Stmt_Trait)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(trt)   RETURN trt   AS cls, ns, "trait"     AS type"""
@@ -37,8 +37,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
     classes foreach { m =>
       logger.info("Processign " + m)
       val (classStmt: Node, namespaceStmt: Option[Node], kind: String) = m
-      logger.info("Opening transaction")
-      backend transactionalDebug { (_, _) =>
+      backend transactional { (_, _) =>
         val label = kind match {
           case "class" => Class
           case "interface" => Interface
@@ -240,8 +239,6 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case _ => (methodNode --| HAS_PARAMETER |--> Parameter).>>
         }
 
-        println(s"Param $paramName for method $name")
-
         paramNode("name") = paramName
         paramNode("variadic") = param.property[Boolean]("variadic") getOrElse false
         paramNode("byRef") = param.property[Boolean]("byRef") getOrElse false
@@ -260,7 +257,6 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
               typ.property[String]("fullName") match {
                 case Some(name: String) =>
                   typeResolver resolveType(name, context) foreach { t =>
-                    println(s"Possible type from type hint: ${t.name}")
                     paramNode --| POSSIBLE_TYPE |--> mergeDataType(t)
                   }
                 case _ =>
@@ -272,7 +268,6 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case Some(ParamTag(vpn, dataTypeName: String, _)) if vpn == paramName =>
             dataTypeName split "\\|" foreach { typename =>
               typeResolver resolveType(typename, context) foreach { t =>
-                println(s"Possible type from doc comment: ${t.name}")
                 paramNode --| POSSIBLE_TYPE |--> mergeDataType(t)
               }
             }

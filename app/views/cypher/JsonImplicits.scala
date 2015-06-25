@@ -31,8 +31,8 @@ object JsonImplicits {
     "id" -> r.id,
     "type" -> "rel",
     "label" -> r.getType.name,
-    "start" -> r.start.id,
-    "end" -> r.end.id,
+    "from" -> r.start.id,
+    "to" -> r.end.id,
     "properties" -> JsObject(r.getPropertyKeys.map { p => (p, anyRefToJsValue(r.getProperty(p))) }.toSeq)
   )
 
