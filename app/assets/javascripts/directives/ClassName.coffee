@@ -9,7 +9,6 @@ define ['angular', '../Application'], (angular, app) ->
         namespaces = scope.fqcn.split '\\'
         scope.namespace = namespaces[0..-2].join "\\"
         scope.class = namespaces[-1..][0]
-        console.log scope
     template: '<span class="text-muted">{{namespace}} \\ </span>{{class}}'
 
 #    (input, cls = 'mute') ->

@@ -6,6 +6,10 @@ define ['angular', '../Application', 'vis'], (angular, app, vis) ->
       edges: '=edges'
     link: (scope, element, attrs) ->
 
+      console.log attrs
+
+      height = attrs.height || 400
+
       labels = []
       labelToNumber = (label) ->
         i = labels.indexOf label
@@ -14,17 +18,28 @@ define ['angular', '../Application', 'vis'], (angular, app, vis) ->
           labels.push label
           labels.length - 1
 
-      labelFromProperties = (node) ->
-        props = node['properties'] or {}
-        if props['name']? then props['name']
-        else if props['title']? then props['title']
-        else if props['fqcn']? then props['fqcn']
-        else node.id
+      groupFromNode = (node) ->
+        if node['package']? then labelToNumber node.package
+        else if node['labels']? and node.labels.length > 0 then labelToNumber node.labels[0]
+        else if node['type']? then labelToNumber(node.type)
+        else 0
+
+      labelFromProperties = (rec, id) ->
+        if rec['name']? then rec['name']
+        else if rec['title']? then rec['title']
+        else if rec['fqcn']? then rec['fqcn']
+        else if rec['properties']? labelFromProperties(rec['properties'], id)
+        else id
 
       titleFromNode = (node) ->
-        str = "<div><strong>#{node.labels[0]}</strong><table>"
-        for key of node.properties
-          str += "<tr><th>#{key}</th><td>#{node.properties[key]}</td></tr>"
+        if node['labels']? then str = "<div><strong>#{node.labels[0]}</strong><table>"
+        else if node['type']? then str = "<div><strong>#{node.type} #{node.fqcn}</strong><table>"
+        else str = "<div><strong>Unknown node</strong><table>"
+
+        if node['properties']?
+          for key of node.properties
+            str += "<tr><th>#{key}</th><td>#{node.properties[key]}</td></tr>"
+
         str += "</table></div>"
         str
 
@@ -32,7 +47,7 @@ define ['angular', '../Application', 'vis'], (angular, app, vis) ->
         id: node['id']
         title: titleFromNode node
         label: labelFromProperties node
-        group: labelToNumber node['labels'][0]
+        group: groupFromNode node
       mapEdge = (edge) ->
         from: edge['from']
         to: edge['to']
@@ -42,31 +57,41 @@ define ['angular', '../Application', 'vis'], (angular, app, vis) ->
         arrows:
           to: true
 
-      data =
-        nodes: new vis.DataSet(scope.nodes.map mapNode)
-        edges: new vis.DataSet(scope.edges.map mapEdge)
-
-      console.log data
-      console.log element
-
       div = angular.element '<div></div>'
-      options =
-        physics:
-          barnesHut:
-            gravitationalConstant: -8000
-            springLength: 150
-        nodes:
-          shape: 'dot'
-          font:
-            size: 12
-            face: 'Sans Serif'
-        edges:
-          color:
-            inherit: 'from'
-          smooth:
-            type: 'continuous'
-        height: '400px'
-
-      network = new vis.Network(div[0], data, options)
       element.append div
+
+      draw = (nodes, edges) ->
+        nodes = nodes || []
+        edges = edges || []
+
+        data =
+          nodes: new vis.DataSet(nodes.map mapNode)
+          edges: new vis.DataSet(edges.map mapEdge)
+
+        console.log data
+        console.log element
+
+        options =
+          physics:
+            barnesHut:
+              gravitationalConstant: -8000
+              springLength: 150
+          nodes:
+            shape: 'dot'
+            font:
+              size: 12
+              face: 'Sans Serif'
+          edges:
+            color:
+              inherit: 'from'
+            smooth:
+              type: 'continuous'
+          height: height
+
+        network = new vis.Network(div[0], data, options)
+
+      scope.$watch 'nodes', (newNodes) -> draw(newNodes, scope.edges)
+      scope.$watch 'edges', (newEdges) -> draw(scope.nodes, newEdges)
+
+      draw(scope.nodes, scope.edges)
 ]

@@ -4,14 +4,16 @@ import javax.inject.{Inject, Singleton}
 
 import controllers.helpers.ViewHelpers
 import domain.model.ModelEdgeType._
-import org.neo4j.graphdb.Node
+import domain.model.ModelLabelType
+import org.neo4j.graphdb.{Direction, Node}
 import persistence.ConnectionManager
 import play.api.{Logger, Play}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json.{JsNull, JsArray, Json}
+import play.api.libs.json._
 import play.api.mvc._
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.concurrent.Future
 import persistence.NodeWrappers._
 
@@ -23,7 +25,7 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
       manager connect project transactional { (b, t) =>
         JsArray(
           b execute "MATCH (c:Class) RETURN c" map { (clazz: Node) =>
-            try { {
+            try {
               val properties = (clazz >--> HAS_PROPERTY map { _.end } map { p =>
                 val types = (p >--> POSSIBLE_TYPE map { r => ViewHelpers.writeTypeRef(project, r.end) }).toArray
 
@@ -83,7 +85,6 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
                 "extends" -> (if (parents.nonEmpty) parents.head else JsNull),
                 "implements" -> implements
               )
-            }
             } catch {
               case e: Exception =>
                 Logger.warn(e.getMessage, e)
@@ -100,9 +101,39 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
   }
 
   def graph(project: String) = Action {
+    val nodes = mutable.Buffer[JsValue]()
+    val edges = mutable.Buffer[JsValue]()
+
     manager connect project transactional { (b, _) =>
-      Ok("Blub")
+      val cypher = """MATCH (c)-[:DEFINED_IN]->()<-[:HAS|SUB*]-(:File)<-[:CONTAINS_FILE]-(p:Package) WHERE c:Class OR c:Trait OR c:Interface RETURN c, p.name"""
+      b execute cypher foreach { (classLike: Node, pkg: String) =>
+        nodes += Json.obj(
+          "id" -> classLike.id,
+          "package" -> pkg,
+          "type" -> classLike.getLabels.headOption.map { _.name }.orNull,
+          "fqcn" -> classLike.property[String]("fqcn").orNull
+        )
+
+        classLike.getRelationships(Direction.OUTGOING).filter { r =>
+          r.end ? ModelLabelType.Class || r.end ? ModelLabelType.Interface || r.end ? ModelLabelType.Trait
+        } foreach { o =>
+          edges += Json.obj(
+            "from" -> classLike.id,
+            "to" -> o.end.id,
+            "label" -> o.getType.name
+          )
+        }
+
+        classLike >--> USES map { _.end } flatMap { t => t >--> IS } map { _.end } foreach { other =>
+          edges += Json.obj(
+            "from" -> classLike.id,
+            "to" -> other.id,
+            "label" -> "USES"
+          )
+        }
+      }
     }
+    Ok(Json.toJson(Json.obj("nodes" -> nodes, "edges" -> edges)))
   }
 
   def show(project: String, name: String) = Action {
