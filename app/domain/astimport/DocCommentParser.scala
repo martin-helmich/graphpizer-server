@@ -1,7 +1,7 @@
 package domain.astimport
 
 import domain.astimport.DocComment.{VarTag, ReturnTag, ParamTag, Tag}
-import util.control.Breaks._
+import scala.util.control.Breaks._
 
 class DocCommentParser {
 
