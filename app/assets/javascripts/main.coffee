@@ -4,6 +4,7 @@ requirejs.config
     'angular-route': ['../lib/angularjs/angular-route']
     'angular-resource': ['../lib/angularjs/angular-resource']
     'd3': ['../lib/d3js/d3']
+    'vis': ['../lib/visjs/vis']
     'jquery': ['../lib/jquery/jquery']
     'bootstrap': ['../lib/bootstrap/js/bootstrap']
   shim:
@@ -26,6 +27,7 @@ require [
   'jquery',
   'bootstrap',
   'd3',
+  'vis',
   './controllers/all',
   './resources/all',
   './services/ProjectService',

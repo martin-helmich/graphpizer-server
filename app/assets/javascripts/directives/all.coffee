@@ -3,4 +3,5 @@ define [
   './CypherNode',
   './CypherRelationship',
   './D3Graph',
+  './VisGraph'
 ], () ->
