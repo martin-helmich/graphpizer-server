@@ -34,6 +34,7 @@ GET           /projects/:project/files/*file                      @controllers.F
 GET           /projects/:project/model                            @controllers.Model.show(project: String)
 POST          /projects/:project/model/generate                   @controllers.Model.generate(project: String)
 GET           /projects/:project/model/classes                    @controllers.Classes.list(project: String)
+GET           /projects/:project/model/classes/graph              @controllers.Classes.graph(project: String)
 GET           /projects/:project/model/classes/:clazz             @controllers.Classes.show(project: String, clazz: String)
 GET           /projects/:project/model/interfaces                 @controllers.Interfaces.list(project: String)
 GET           /projects/:project/model/interfaces/:iface          @controllers.Interfaces.show(project: String, iface: String)

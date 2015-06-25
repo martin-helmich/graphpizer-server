@@ -26,8 +26,6 @@ require [
   'angular-resource',
   'jquery',
   'bootstrap',
-  'd3',
-  'vis',
   './controllers/all',
   './resources/all',
   './services/ProjectService',
@@ -53,6 +51,9 @@ require [
     .when '/projects/:project/model/classes',
       templateUrl: 'assets/partials/model/classes.html'
       controller: 'ClassCtrl'
+    .when '/projects/:project/model/classes/graph',
+      templateUrl: 'assets/partials/model/classgraph.html'
+      controller: 'ClassGraphCtrl'
     .when '/projects/:project/cypher',
       templateUrl: 'assets/partials/cypher.html'
       controller: 'CypherCtrl'

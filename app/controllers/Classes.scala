@@ -99,6 +99,12 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
     future map { json => Ok(json) }
   }
 
+  def graph(project: String) = Action {
+    manager connect project transactional { (b, _) =>
+      Ok("Blub")
+    }
+  }
+
   def show(project: String, name: String) = Action {
     Ok("Huhu!")
   }
