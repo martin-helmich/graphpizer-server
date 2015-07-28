@@ -33,6 +33,9 @@ require [
 ], (angular, app) ->
   app.config ['$routeProvider', ($routeProvider) ->
     $routeProvider
+    .when '/',
+      templateUrl: 'assets/partials/index.html'
+      controller: 'IndexCtrl'
     .when '/projects/new',
       templateUrl: 'assets/partials/project/new.html'
       controller: 'ProjectNewCtrl'

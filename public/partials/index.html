@@ -1,0 +1,55 @@
+<div class="page-header">
+    <h1>
+        Welcome to GraPHPizer
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <h5>Getting started</h5>
+        <p>
+            Not sure where to go from here? Simply get started using the following steps:
+        </p>
+        <ol>
+            <li>
+                Start by <a href="#/projects/new">creating a new project</a>.
+            </li>
+            <li>
+                Install the GraPHPizer CLI tool into your project, using
+                <code>composer require helmich/graphpizer-cli</code>
+            </li>
+            <li>
+                Create <code>.graphizer.json</code> configuration files in your codebase to control how GraPHPizer
+                treats your source code during import and analysis.
+            </li>
+            <li>
+                Import your project's source code into GraPHPizer using <code>composer/bin/graphpizer-cli ast:import .</code>
+            </li>
+            <li>
+                Have a coffee.
+            </li>
+            <li>
+                Perform the model generation step by pressing the <em>Generate/Update Model</em>
+                button in the project overview.
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Projects</h3>
+            </div>
+            <table class="table">
+                <tr ng-repeat="project in projects">
+                    <td><a href="#/projects/{{ project.slug }}">{{ project.name }}</a></td>
+                </tr>
+            </table>
+            <div class="panel-footer text-right">
+                <a class="btn btn-primary" href="#/projects/new">
+                    <i class="glyphicon glyphicon-plus"></i>
+                    Create new project
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

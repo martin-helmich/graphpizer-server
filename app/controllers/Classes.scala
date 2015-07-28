@@ -100,6 +100,19 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
     future map { json => Ok(json) }
   }
 
+  def uml(project: String, slug: String, format: String = "txt") = Action {
+    manager connect project transactional { (b, _) =>
+      val cypher = """MATCH (c) WHERE (c:Class OR c:Interface OR c:Trait) AND c.slug=:slug
+                      MATCH (c)-[:EXTENDS|:INHERITS]->(e)
+                      MATCH (c)-[:USES]->(:Type)-[:IS]->(u) WHERE u:Class OR u:Interface
+                      RETURN c, collect(e) AS parents, collect(u) AS usees"""
+
+      b execute cypher
+
+      Ok("foo")
+    }
+  }
+
   def graph(project: String) = Action {
     val nodes = mutable.Buffer[JsValue]()
     val edges = mutable.Buffer[JsValue]()

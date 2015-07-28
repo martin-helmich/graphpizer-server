@@ -1,4 +1,5 @@
 define [
+  './IndexCtrl',
   './ProjectCtrl',
   './ProjectNewCtrl',
   './ProjectDetailCtrl',

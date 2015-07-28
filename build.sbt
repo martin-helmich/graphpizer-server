@@ -13,6 +13,8 @@ libraryDependencies ++= Seq(
   ws
 )
 
+resolvers += "PlantUML repository" at "https://oss.sonatype.org/content/repositories/releases"
+
 libraryDependencies ++= Seq(
   "org.neo4j" % "neo4j" % "2.2.1",
   "com.google.inject" % "guice" % "3.0",
@@ -24,7 +26,8 @@ libraryDependencies ++= Seq(
   "org.webjars" % "bootstrap" % "3.3.4",
   "org.webjars" % "visjs" % "4.2.0",
   "joda-time" % "joda-time" % "2.8",
-  "commons-io" % "commons-io" % "2.4"
+  "commons-io" % "commons-io" % "2.4",
+  "net.sourceforge.plantuml" % "plantuml" % "8027"
 )
 
 pipelineStages := Seq(rjs, digest, gzip)
