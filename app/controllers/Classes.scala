@@ -102,14 +102,12 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
 
   def uml(project: String, slug: String, format: String = "txt") = Action {
     manager connect project transactional { (b, _) =>
-      val cypher = """MATCH (c) WHERE (c:Class OR c:Interface OR c:Trait) AND c.slug=:slug
-                      MATCH (c)-[:EXTENDS|:INHERITS]->(e)
-                      MATCH (c)-[:USES]->(:Type)-[:IS]->(u) WHERE u:Class OR u:Interface
-                      RETURN c, collect(e) AS parents, collect(u) AS usees"""
+      val cypher = """MATCH (c)-[:DEFINED_IN]->()<-[:HAS|SUB*]-(:File)<-[:CONTAINS_FILE]-(p:Package) WHERE c:Class OR c:Trait OR c:Interface RETURN c, p.name"""
+      val classes = b execute cypher map { (classLike: Node, pkg: String) =>
+        domain.model.ClassLike.fromNode(classLike)
+      }
 
-      b execute cypher
-
-      Ok("foo")
+      Ok(views.plantuml.classdiagram(classes))
     }
   }
 

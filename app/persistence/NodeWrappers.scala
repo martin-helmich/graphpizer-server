@@ -127,9 +127,10 @@ object NodeWrappers {
       underlyingNode getRelationships(relationshipType, Direction.INCOMING)
     }
 
-    def >-->(relationshipType: RelationshipType): Iterable[Relationship] = {
+    def >-->(relationshipType: RelationshipType): Iterable[Relationship] =
       underlyingNode getRelationships(relationshipType, Direction.OUTGOING)
-    }
+
+    def out(relationshipType: RelationshipType): Iterable[Relationship] = >-->(relationshipType)
 
     def sub[T <: AstNode](typ: String): Option[T] = {
       (this >--> SUB filter { _.property[String]("type") exists { _ == typ } } map { _.end }).headOption.map { _.unbox.asInstanceOf[T] }

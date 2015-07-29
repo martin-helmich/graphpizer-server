@@ -31,3 +31,5 @@ libraryDependencies ++= Seq(
 )
 
 pipelineStages := Seq(rjs, digest, gzip)
+
+TwirlKeys.templateFormats += ("plantuml" -> "templates.PlantUmlFormat")
