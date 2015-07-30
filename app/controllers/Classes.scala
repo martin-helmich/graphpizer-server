@@ -5,7 +5,9 @@ import javax.inject.{Inject, Singleton}
 
 import controllers.helpers.ViewHelpers
 import domain.model.ModelEdgeTypes._
-import domain.model.ModelLabelTypes
+import domain.model._
+import domain.model.ClassLike.Visibility
+import domain.model.ClassLike.Visibility.Visibility
 import net.sourceforge.plantuml.SourceStringReader
 import org.neo4j.graphdb.{Direction, Node}
 import persistence.ConnectionManager
@@ -22,76 +24,81 @@ import persistence.NodeWrappers._
 @Singleton
 class Classes @Inject()(manager: ConnectionManager) extends Controller {
 
+  private def propertyToJson(project: String, p: Property)(implicit request: Request[AnyContent]): JsValue = Json.obj(
+    "name" -> p.name,
+    "public" -> JsBoolean(p.visibility match { case Visibility.Public => true; case _ => false }),
+    "protected" -> JsBoolean(p.visibility match { case Visibility.Protected => true; case _ => false }),
+    "private" -> JsBoolean(p.visibility match { case Visibility.Private => true; case _ => false }),
+    "static" -> p.static,
+    "possibleTypes" -> p.possibleTypes.toArray.map { ViewHelpers.writeTypeRef(project, _) }
+  )
+
+  private def methodToJson(project: String, meth: Method)(implicit request: Request[AnyContent]): JsValue = Json.obj(
+    "name" -> meth.name,
+    "public" -> JsBoolean(meth.visibility match { case Visibility.Public => true; case _ => false }),
+    "protected" -> JsBoolean(meth.visibility match { case Visibility.Protected => true; case _ => false }),
+    "private" -> JsBoolean(meth.visibility match { case Visibility.Private => true; case _ => false }),
+    "static" -> meth.isAbstract,
+    "abstract" -> meth.isStatic,
+    "parameters" -> meth.parameters.toArray.map { param => Json.obj(
+      "name" -> param.name,
+      "variadic" -> param.isVariadic,
+      "byRef" -> param.isByReference,
+      "possibleTypes" -> param.possibleTypes.toArray.map { ViewHelpers.writeTypeRef(project, _) }
+    )
+    },
+    "possibleReturnTypes" -> meth.possibleReturnTypes.toArray.map { ViewHelpers.writeTypeRef(project, _) }
+  )
+
   def list(project: String) = Action.async { implicit req =>
     val future = Future {
       manager connect project transactional { (b, t) =>
         JsArray(
-          b execute "MATCH (c:Class) RETURN c" map { (clazz: Node) =>
+          b execute "MATCH (c:Class) RETURN c" map { (clazz: Node) => (clazz.id, ClassLike.fromNode(clazz)) } map { case (id, clazz) =>
             try {
-              val properties = (clazz >--> HAS_PROPERTY map { _.end } map { p =>
-                val types = (p >--> POSSIBLE_TYPE map { r => ViewHelpers.writeTypeRef(project, r.end) }).toArray
-
-                Json.obj(
-                  "name" -> p.property[String]("name"),
-                  "public" -> p.property[Boolean]("public"),
-                  "protected" -> p.property[Boolean]("protected"),
-                  "private" -> p.property[Boolean]("private"),
-                  "static" -> p.property[Boolean]("static"),
-                  "docComment" -> p.property[String]("docComment"),
-                  "possibleTypes" -> types,
-                  "__id" -> p.id
+              clazz match {
+                case c: Class => Json.obj(
+                  "__id" -> id,
+                  "__href" -> controllers.routes.Classes.show(project, c.slug).absoluteURL(),
+                  "type" -> "class",
+                  "fqcn" -> c.fqcn,
+                  "name" -> c.name,
+                  "namespace" -> c.namespace,
+                  "final" -> c.isFinal,
+                  "abstract" -> c.isAbstract,
+                  "properties" -> c.properties.toArray.map { propertyToJson(project, _) },
+                  "methods" -> c.methods.toArray.map { methodToJson(project, _) },
+                  "extends" -> c.parent.map { ViewHelpers.writeClassRef(project, _) },
+                  "implements" -> c.implements.map { ViewHelpers.writeClassRef(project, _) }
                 )
-              }).toArray
-
-              val methods = (clazz >--> HAS_METHOD map { _.end } map { m =>
-                val types = (m >--> POSSIBLE_TYPE map { r => ViewHelpers.writeTypeRef(project, r.end) }).toArray
-                val params = (m >--> HAS_PARAMETER map { _.end } map { p =>
-                  val types = (p >--> POSSIBLE_TYPE map { r => ViewHelpers.writeTypeRef(project, r.end) }).toArray
-                  Json.obj(
-                    "name" -> p.property[String]("name"),
-                    "variadic" -> p.property[Boolean]("variadic"),
-                    "byRef" -> p.property[Boolean]("byRef"),
-                    "possibleTypes" -> types
-                  )
-                }).toArray
-
-                Json.obj(
-                  "name" -> m.property[String]("name"),
-                  "public" -> m.property[Boolean]("public"),
-                  "protected" -> m.property[Boolean]("protected"),
-                  "private" -> m.property[Boolean]("private"),
-                  "static" -> m.property[Boolean]("static"),
-                  "abstract" -> m.property[Boolean]("abstract"),
-                  "docComment" -> m.property[String]("docComment"),
-                  "possibleReturnTypes" -> types,
-                  "parameters" -> params
+                case i: Interface => Json.obj(
+                  "__id" -> id,
+                  "__href" -> controllers.routes.Classes.show(project, i.slug).absoluteURL(),
+                  "type" -> "interface",
+                  "fqcn" -> i.fqcn,
+                  "name" -> i.name,
+                  "namespace" -> i.namespace,
+                  "abstract" -> true,
+                  "methods" -> i.methods.toArray.map { methodToJson(project, _) },
+                  "extends" -> i.parent.map { ViewHelpers.writeClassRef(project, _) }
                 )
-              }).toList
-
-              val parents = (clazz >--> EXTENDS map { r => ViewHelpers.writeClassRef(project, r.end) }).toArray
-              val implements = (clazz >--> IMPLEMENTS map { r => ViewHelpers.writeInterfaceRef(
-                project,
-                r.end
-              )
-              }).toArray
-
-              Json.obj(
-                "__id" -> clazz.id,
-                "__href" -> controllers.routes.Classes.show(project, clazz ! "slug").absoluteURL(),
-                "fqcn" -> clazz.property[String]("fqcn"),
-                "namespace" -> clazz.property[String]("namespace"),
-                "final" -> clazz.property[Boolean]("final"),
-                "abstract" -> clazz.property[Boolean]("abstract"),
-                "properties" -> properties,
-                "methods" -> methods,
-                "extends" -> (if (parents.nonEmpty) parents.head else JsNull),
-                "implements" -> implements
-              )
+                case t: Trait => Json.obj(
+                  "__id" -> id,
+                  "__href" -> controllers.routes.Classes.show(project, t.slug).absoluteURL(),
+                  "type" -> "trait",
+                  "fqcn" -> t.fqcn,
+                  "name" -> t.name,
+                  "namespace" -> t.namespace,
+                  "abstract" -> true,
+                  "methods" -> t.methods.toArray.map { methodToJson(project, _) },
+                  "properties" -> t.properties.toArray.map { propertyToJson(project, _) }
+                )
+              }
             } catch {
               case e: Exception =>
                 Logger.warn(e.getMessage, e)
                 Json.obj(
-                  "__id" -> clazz.id,
+                  "__id" -> id,
                   "__invalidObject" -> e.getMessage
                 )
             }

@@ -54,10 +54,10 @@ class Types @Inject()(manager: ConnectionManager) extends Controller {
     Ok(json) withHeaders (("X-ObjectCount", count.toString))
   }
 
-  def show(project: String, typ: Long) = Action { implicit r =>
+  def show(project: String, typ: String) = Action { implicit r =>
     try {
       val json = manager connect project transactional { (backend, t) =>
-        backend execute "MATCH (t:Type) WHERE id(t)={id} RETURN t" params Map("id" -> Long.box(typ)) map { (t: Node) => renderJson(project, t) } head
+        backend execute "MATCH (t:Type) WHERE t.slug={id} RETURN t" params Map("id" -> typ) map { (t: Node) => renderJson(project, t) } head
       }
       Ok(json)
     } catch {
@@ -70,8 +70,8 @@ class Types @Inject()(manager: ConnectionManager) extends Controller {
       "name" -> t.property[String]("name"),
       "primitive" -> t.property[Boolean]("primitive"),
       "collection" -> t.property[Boolean]("collection"),
-      "__href" -> controllers.routes.Types.show(project, t.id).absoluteURL(),
-      "__id" -> t.id
+      "__href" -> controllers.routes.Types.show(project, t.property[String]("slug").get).absoluteURL(),
+      "__id" -> t.property[String]("slug")
     )
 
     val collectionOf = t >--> ModelEdgeTypes.COLLECTION_OF
@@ -80,7 +80,7 @@ class Types @Inject()(manager: ConnectionManager) extends Controller {
       o ++= Json.obj(
         "collectionOf" -> Json.obj(
           "name" -> inner.property[String]("name"),
-          "__href" -> controllers.routes.Types.show(project, inner.id).absoluteURL()
+          "__href" -> controllers.routes.Types.show(project, inner.property[String]("slug").get).absoluteURL()
         )
       )
     }

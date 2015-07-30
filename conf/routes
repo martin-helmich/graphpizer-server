@@ -41,7 +41,7 @@ GET           /projects/:project/model/classes/:clazz/uml/:format @controllers.C
 GET           /projects/:project/model/interfaces                 @controllers.Interfaces.list(project: String)
 GET           /projects/:project/model/interfaces/:iface          @controllers.Interfaces.show(project: String, iface: String)
 GET           /projects/:project/model/types                      @controllers.Types.list(project: String)
-GET           /projects/:project/model/types/:typ                 @controllers.Types.show(project: String, typ: Long)
+GET           /projects/:project/model/types/:typ                 @controllers.Types.show(project: String, typ: String)
 
 POST          /projects/:project/cypher                           @controllers.Cypher.execute(project: String, format="json")
 POST          /projects/:project/cypher/:format                   @controllers.Cypher.execute(project: String, format: String)
