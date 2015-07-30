@@ -4,7 +4,7 @@ import org.neo4j.graphdb.{Label, RelationshipType}
 
 import scala.language.implicitConversions
 
-object ModelLabelType extends Enumeration {
+object ModelLabelTypes extends Enumeration {
   type LabelType = Value
   val Package, Class, Interface, Trait, Method, Type, Property, Parameter = Value
 

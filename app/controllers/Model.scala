@@ -12,7 +12,7 @@ import persistence.ConnectionManager
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json.Json
 import play.api.mvc._
-import domain.model.ModelLabelType._
+import domain.model.ModelLabelTypes._
 
 import scala.concurrent.Future
 

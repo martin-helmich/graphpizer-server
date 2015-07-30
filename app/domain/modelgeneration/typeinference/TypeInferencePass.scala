@@ -1,7 +1,7 @@
 package domain.modelgeneration.typeinference
 
 import domain.mapper.TypeMapper
-import domain.model.ModelEdgeType._
+import domain.model.ModelEdgeTypes._
 import org.neo4j.graphdb.Node
 import persistence.BackendInterface
 import persistence.NodeWrappers._

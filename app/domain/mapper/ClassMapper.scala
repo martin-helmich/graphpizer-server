@@ -2,8 +2,8 @@ package domain.mapper
 
 import javax.inject.Inject
 
-import domain.model.ModelEdgeType._
-import domain.model.{ModelLabelType, Class}
+import domain.model.ModelEdgeTypes._
+import domain.model.{ModelLabelTypes, Class}
 import org.neo4j.graphdb.Node
 import persistence.NodeWrappers._
 
@@ -24,7 +24,7 @@ class ClassMapper @Inject() (propertyMapper: PropertyMapper) {
     c.properties foreach { p =>
       val propertyNode = existingProperties get p.name match {
         case Some(existing: Node) => existing
-        case _ => (n --| HAS_PROPERTY |--> ModelLabelType.Property).>>
+        case _ => (n --| HAS_PROPERTY |--> ModelLabelTypes.Property).>>
       }
 
       propertyMapper.mapPropertyToNode(p, propertyNode)

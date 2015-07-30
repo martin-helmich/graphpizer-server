@@ -3,8 +3,8 @@ package controllers
 import javax.inject.{Inject, Singleton}
 
 import controllers.helpers.ViewHelpers
-import domain.model.ModelEdgeType._
-import domain.model.ModelLabelType
+import domain.model.ModelEdgeTypes._
+import domain.model.ModelLabelTypes
 import org.neo4j.graphdb.{Direction, Node}
 import persistence.ConnectionManager
 import play.api.{Logger, Play}
@@ -107,7 +107,8 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
         domain.model.ClassLike.fromNode(classLike)
       }
 
-      Ok(views.plantuml.classdiagram(classes))
+      Ok(views.plantuml.ClassDiagram(classes))
+      //Ok(views.plantuml.classdiagram(classes))
     }
   }
 
@@ -126,7 +127,7 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
         )
 
         classLike.getRelationships(Direction.OUTGOING).filter { r =>
-          r.end ? ModelLabelType.Class || r.end ? ModelLabelType.Interface || r.end ? ModelLabelType.Trait
+          r.end ? ModelLabelTypes.Class || r.end ? ModelLabelTypes.Interface || r.end ? ModelLabelTypes.Trait
         } foreach { o =>
           edges += Json.obj(
             "from" -> classLike.id,

@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 
-import domain.model.ModelEdgeType
+import domain.model.ModelEdgeTypes
 import org.neo4j.graphdb.Node
 import persistence.ConnectionManager
 import persistence.NodeWrappers._
@@ -74,7 +74,7 @@ class Types @Inject()(manager: ConnectionManager) extends Controller {
       "__id" -> t.id
     )
 
-    val collectionOf = t >--> ModelEdgeType.COLLECTION_OF
+    val collectionOf = t >--> ModelEdgeTypes.COLLECTION_OF
     if (collectionOf.nonEmpty) {
       val inner = collectionOf.head.end
       o ++= Json.obj(
@@ -85,7 +85,7 @@ class Types @Inject()(manager: ConnectionManager) extends Controller {
       )
     }
 
-    val is = t >--> ModelEdgeType.IS
+    val is = t >--> ModelEdgeTypes.IS
     if (is.nonEmpty) {
       val clazz = is.head.end
       o ++= Json.obj(

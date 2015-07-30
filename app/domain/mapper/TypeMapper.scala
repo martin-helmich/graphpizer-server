@@ -1,6 +1,6 @@
 package domain.mapper
 
-import domain.model.ModelEdgeType._
+import domain.model.ModelEdgeTypes._
 import domain.model.DataType
 import org.neo4j.graphdb.Node
 import persistence.NodeWrappers._

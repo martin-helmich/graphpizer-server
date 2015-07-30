@@ -11,7 +11,7 @@ case class DataType(name: String, primitive: Boolean, collection: Boolean = fals
   }
 
   def query = new Query(
-    ModelLabelType.Type,
+    ModelLabelTypes.Type,
     Map(
       "name" -> name,
       "primitive" -> Boolean.box(primitive),
@@ -27,7 +27,7 @@ object DataType {
     n.property[String]("name").getOrElse(""),
     n.property[Boolean]("primitive").getOrElse(false),
     n.property[Boolean]("collection").getOrElse(false),
-    (n out ModelEdgeType.COLLECTION_OF).headOption.map { r => fromNode(r.end) }
+    (n out ModelEdgeTypes.COLLECTION_OF).headOption.map { r => fromNode(r.end) }
   )
 
 }

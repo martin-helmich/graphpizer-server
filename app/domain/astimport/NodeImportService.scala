@@ -4,13 +4,13 @@ import akka.actor.{Actor, ActorLogging}
 import akka.event.LoggingReceive
 import controllers.dto.ImportDataSet
 import domain.model.AstNodeTypes._
-import domain.model.ModelEdgeType._
+import domain.model.ModelEdgeTypes._
 import org.neo4j.graphdb
 import org.neo4j.graphdb._
 import persistence.{Query, BackendInterface, ConnectionManager}
 import persistence.NodeWrappers._
 import util.WrappingActorLogging
-import domain.model.ModelLabelType._
+import domain.model.ModelLabelTypes._
 
 import scala.collection.JavaConversions._
 

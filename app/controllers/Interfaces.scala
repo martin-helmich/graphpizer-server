@@ -3,7 +3,7 @@ package controllers
 import javax.inject.{Inject, Singleton}
 
 import controllers.helpers.ViewHelpers
-import domain.model.ModelEdgeType._
+import domain.model.ModelEdgeTypes._
 import org.neo4j.graphdb.Node
 import persistence.ConnectionManager
 import persistence.NodeWrappers._

@@ -5,8 +5,8 @@ import domain.astimport.{DocComment, DocCommentParser}
 import domain.model.AstNodeTypes._
 import domain.model.AstEdgeType._
 import domain.model.DataType
-import domain.model.ModelEdgeType._
-import domain.model.ModelLabelType._
+import domain.model.ModelEdgeTypes._
+import domain.model.ModelLabelTypes._
 import domain.modelgeneration.ClassResolver.{ImportContextImpl, ImportContext}
 import org.neo4j.graphdb.{Path, Node}
 import persistence.NodeWrappers._

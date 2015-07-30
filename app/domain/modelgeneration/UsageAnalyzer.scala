@@ -5,7 +5,7 @@ import domain.modelgeneration.UsageAnalyzer.{Registry, TypeContainer}
 import org.neo4j.graphdb.Node
 import persistence.BackendInterface
 import play.api.Logger
-import domain.model.ModelEdgeType._
+import domain.model.ModelEdgeTypes._
 import persistence.NodeWrappers._
 
 import scala.collection.mutable
