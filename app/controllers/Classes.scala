@@ -1,10 +1,12 @@
 package controllers
 
+import java.io.{ByteArrayOutputStream, BufferedOutputStream, OutputStream}
 import javax.inject.{Inject, Singleton}
 
 import controllers.helpers.ViewHelpers
 import domain.model.ModelEdgeTypes._
 import domain.model.ModelLabelTypes
+import net.sourceforge.plantuml.SourceStringReader
 import org.neo4j.graphdb.{Direction, Node}
 import persistence.ConnectionManager
 import play.api.{Logger, Play}
@@ -107,8 +109,18 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
         domain.model.ClassLike.fromNode(classLike)
       }
 
-      Ok(views.plantuml.ClassDiagram(classes))
-      //Ok(views.plantuml.classdiagram(classes))
+      val umlcode = views.plantuml.ClassDiagram(classes)
+
+      format match {
+        case "txt" => Ok(umlcode)
+        case "png" =>
+          val reader = new SourceStringReader(umlcode)
+          val out = new ByteArrayOutputStream(16 * 1024)
+
+          reader.generateImage(out)
+          Ok(out.toByteArray).as("image/png")
+        case _ => NotAcceptable(s"Format not acceptable: $format")
+      }
     }
   }
 

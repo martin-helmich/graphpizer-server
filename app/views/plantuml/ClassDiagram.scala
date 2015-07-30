@@ -8,7 +8,7 @@ object ClassDiagram {
 
   def apply(classes: Seq[ClassLike], withPackages: Boolean = true): String = {
     "@startuml\n" +
-      (if (withPackages) "namespaceSeparator _\n" else "") +
+      (if (withPackages) "set namespaceSeparator _\n" else "") +
       (classes map { renderClassLike(_, withPackages) }).mkString("\n") +
       (classes map { renderRelationships }).mkString("\n") +
     "@enduml\n"
