@@ -69,7 +69,7 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
                   "properties" -> c.properties.toArray.map { propertyToJson(project, _) },
                   "methods" -> c.methods.toArray.map { methodToJson(project, _) },
                   "extends" -> c.parent.map { ViewHelpers.writeClassRef(project, _) },
-                  "implements" -> c.implements.map { ViewHelpers.writeClassRef(project, _) }
+                  "implements" -> c.implements.toArray.map { ViewHelpers.writeClassRef(project, _) }
                 )
                 case i: Interface => Json.obj(
                   "__id" -> id,
