@@ -38,12 +38,4 @@ object ViewHelpers {
     )
   }
 
-  def writeInterfaceRef(p: String, i: Node)(implicit request: Request[AnyContent]): JsValue = {
-    Json.obj(
-      "fqcn" -> i.property[String]("fqcn"),
-      "__href" -> controllers.routes.Interfaces.show(p, i ! "slug").absoluteURL(),
-      "__id" -> i.id
-    )
-  }
-
 }
