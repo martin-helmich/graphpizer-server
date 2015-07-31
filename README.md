@@ -10,6 +10,8 @@ What is GraPHPizer?
 GraPHPizer uses graph technologies to offer a source code analytics engine for PHP projects. This includes nifty
 graph visualizations like the following one:
 
+![Example of GraPHPizer graph visualization](documentation/graphpizer-demo.png)
+
 Features include:
 
 - Graph visualisations (completely useless, but they look pretty)
