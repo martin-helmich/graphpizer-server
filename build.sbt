@@ -1,6 +1,6 @@
-name := """graphizer-play"""
+name := """graphpizer-server"""
 
-version := "1.0-SNAPSHOT"
+version := "1.0.0-dev"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
