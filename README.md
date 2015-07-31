@@ -14,7 +14,7 @@ graph visualizations like the following one:
 
 Features include:
 
-- Graph visualisations (completely useless, but they look pretty)
+- Graph visualisations (~~completely useless~~ marginally useful, but they look pretty)
 - Search your code base using the graph query language *Cypher*
 - Automatic generation of UML diagrams from PHP code
 - Type inference
