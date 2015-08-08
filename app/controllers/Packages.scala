@@ -1,7 +1,10 @@
 package controllers
 
+import java.io.ByteArrayOutputStream
 import javax.inject.{Inject, Singleton}
 
+import domain.model.ClassLike
+import net.sourceforge.plantuml.SourceStringReader
 import org.neo4j.graphdb.Node
 import persistence.ConnectionManager
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -27,6 +30,27 @@ class Packages @Inject()(manager: ConnectionManager) extends Controller {
         JsArray(f)
       }
     } map { j => Ok(j) }
+  }
+
+  def uml(project: String, pkg: String, format: String = "txt") = Action {
+    manager connect project transactional { (b, _) =>
+      val cypher = """MATCH (c)-[:DEFINED_IN]->()<-[:HAS|SUB*]-(:File)<-[:CONTAINS_FILE]-(p:Package {name: {pkg}}) WHERE c:Class OR c:Trait OR c:Interface RETURN c, p.name"""
+      val params = Map("pkg" -> pkg)
+      val classes = b execute cypher params params map { (classLike: Node, pkg: String) => ClassLike.fromNode(classLike) }
+
+      val umlcode = views.plantuml.ClassDiagram(classes)
+
+      format match {
+        case "txt" => Ok(umlcode)
+        case "png" =>
+          val reader = new SourceStringReader(umlcode)
+          val out = new ByteArrayOutputStream(16 * 1024)
+
+          reader.generateImage(out)
+          Ok(out.toByteArray).as("image/png")
+        case _ => NotAcceptable(s"Format not acceptable: $format")
+      }
+    }
   }
 
 }
