@@ -20,6 +20,12 @@ sealed trait ClassLike {
     ) + namespaceSeparator
   } getOrElse "") + name
 
+  override def equals(o: Any) = o match {
+    case that: ClassLike => that.fqcn == fqcn
+    case _ => false
+  }
+
+  override def hashCode = fqcn.toLowerCase.hashCode
 }
 
 class Class(val slug: String,

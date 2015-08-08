@@ -15,6 +15,7 @@ import play.api.{Logger, Play}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc._
+import views.plantuml.ClassDiagram
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -114,7 +115,8 @@ class Classes @Inject()(manager: ConnectionManager) extends Controller {
       val cypher = """MATCH (c)-[:DEFINED_IN]->()<-[:HAS|SUB*]-(:File)<-[:CONTAINS_FILE]-(p:Package) WHERE c:Class OR c:Trait OR c:Interface RETURN c, p.name"""
       val classes = b execute cypher map { (classLike: Node, pkg: String) => ClassLike.fromNode(classLike) }
 
-      val umlcode = views.plantuml.ClassDiagram(classes)
+      val umlconfig = ClassDiagram.DisplayConfiguration(withPackages = true, withUsages = true)
+      val umlcode = ClassDiagram(classes, umlconfig)
 
       format match {
         case "txt" => Ok(umlcode)

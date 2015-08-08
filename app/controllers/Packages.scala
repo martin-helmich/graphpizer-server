@@ -7,12 +7,12 @@ import domain.model.ClassLike
 import net.sourceforge.plantuml.SourceStringReader
 import org.neo4j.graphdb.Node
 import persistence.ConnectionManager
+import persistence.NodeWrappers._
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json.{JsArray, Json}
 import play.api.mvc._
-import persistence.NodeWrappers._
+import views.plantuml.ClassDiagram
 
-import scala.collection.JavaConversions._
 import scala.concurrent.Future
 
 @Singleton
@@ -38,7 +38,8 @@ class Packages @Inject()(manager: ConnectionManager) extends Controller {
       val params = Map("pkg" -> pkg)
       val classes = b execute cypher params params map { (classLike: Node, pkg: String) => ClassLike.fromNode(classLike) }
 
-      val umlcode = views.plantuml.ClassDiagram(classes)
+      val umlconfig = ClassDiagram.DisplayConfiguration(withPackages = true, withUsages = true, includeRelatedClasses = false)
+      val umlcode = ClassDiagram(classes, umlconfig)
 
       format match {
         case "txt" => Ok(umlcode)

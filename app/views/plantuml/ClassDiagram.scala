@@ -6,15 +6,19 @@ import domain.model.ClassLike.Visibility.Visibility
 
 object ClassDiagram {
 
-  def apply(classes: Seq[ClassLike], withPackages: Boolean = true): String = {
+  case class DisplayConfiguration(withPackages: Boolean = true,
+                                  withUsages: Boolean = true,
+                                  includeRelatedClasses: Boolean = true)
+
+  def apply(classes: Seq[ClassLike], config: DisplayConfiguration): String = {
     "@startuml\n" +
-      (if (withPackages) "set namespaceSeparator _\n" else "") +
-      (classes map { renderClassLike(_, withPackages) }).mkString("\n") +
-      (classes map { renderRelationships }).mkString("\n") +
-    "@enduml\n"
+      (if (config.withPackages) "set namespaceSeparator _\n" else "") +
+      (classes map { renderClassLike(_, config) }).mkString("\n") +
+      (classes map { renderRelationships(_, classes, config) }).mkString("\n") +
+      "@enduml\n"
   }
 
-  private def renderClassLike(classLike: ClassLike, withPackages: Boolean = true): String = {
+  private def renderClassLike(classLike: ClassLike, config: DisplayConfiguration): String = {
     val sb = new StringBuilder()
     sb.append(classTag(classLike) + " " + classLike.fqcn("_") + " {\n")
 
@@ -29,15 +33,21 @@ object ClassDiagram {
     sb.toString()
   }
 
-  private def renderRelationships(classLike: ClassLike): String = classLike match {
-    case klass: Class =>
-      klass.parent.map { parent => klass.fqcn("_") + " --|> " + parent.fqcn("_") + "\n" }.getOrElse("") +
-      klass.implements.map { interface => klass.fqcn("_") + " ..|> " + interface.fqcn("_") }.mkString("\n") + "\n" +
-      klass.usesTraits.map { usedTrait => klass.fqcn("_") + " ..|> " + usedTrait.fqcn("_") }.mkString("\n") + "\n" +
-      klass.usedClasses.map { used => klass.fqcn("_") + " --> " + used.fqcn("_") }.mkString("\n") + "\n"
-    case iface: Interface =>
-      iface.parent.map { parent => iface.fqcn("_") + " --|> " + parent.fqcn("_") + "\n" }.getOrElse("")
-    case _ => ""
+  private def renderRelationships(classLike: ClassLike, classes: Seq[ClassLike], config: DisplayConfiguration): String = {
+    val filter = (c: ClassLike) => { classes.contains(c) || config.includeRelatedClasses }
+//    val filter = (c: ClassLike) => { println(classes); println(c); true }
+    classLike match {
+      case klass: Class =>
+        klass.parent.filter(filter).map { parent => klass.fqcn("_") + " --|> " + parent.fqcn("_") + "\n" }.getOrElse("") +
+          klass.implements.filter(filter).map { interface => klass.fqcn("_") + " ..|> " + interface.fqcn("_") }.mkString("\n") + "\n" +
+          klass.usesTraits.filter(filter).map { usedTrait => klass.fqcn("_") + " ..|> " + usedTrait.fqcn("_") }.mkString("\n") + "\n" +
+          (if (config.withUsages) {
+            klass.usedClasses.filter(filter).map { used => klass.fqcn("_") + " --> " + used.fqcn("_") }.mkString("\n") + "\n"
+          } else "")
+      case iface: Interface =>
+        iface.parent.filter(filter).map { parent => iface.fqcn("_") + " --|> " + parent.fqcn("_") + "\n" }.getOrElse("")
+      case _ => ""
+    }
   }
 
   private def renderProperty(prop: Property): String = {
@@ -49,14 +59,14 @@ object ClassDiagram {
 
   private def renderMethod(meth: Method): String = {
     "    " +
-    renderVisibility(meth.visibility) +
-    " " + meth.name + "(" +
-    meth.parameters.map { param =>
-      "$" + param.name + (if (param.possibleTypes.nonEmpty) {
-        " : " + param.possibleTypes.map { t => t.name}.mkString("|")
-      } else "")
-    }.mkString(", ") + ")" + (if (meth.possibleReturnTypes.nonEmpty) {
-      " : " + meth.possibleReturnTypes.map { t => t.name}.mkString("|")
+      renderVisibility(meth.visibility) +
+      " " + meth.name + "(" +
+      meth.parameters.map { param =>
+        "$" + param.name + (if (param.possibleTypes.nonEmpty) {
+          " : " + param.possibleTypes.map { t => t.name }.mkString("|")
+        } else "")
+      }.mkString(", ") + ")" + (if (meth.possibleReturnTypes.nonEmpty) {
+      " : " + meth.possibleReturnTypes.map { t => t.name }.mkString("|")
     } else "")
   }
 
