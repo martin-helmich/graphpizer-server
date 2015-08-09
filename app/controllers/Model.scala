@@ -21,10 +21,10 @@ class Model @Inject()(manager: ConnectionManager, factory: GeneratorFactory, act
 
   val projects = actorSystem.actorOf(Props[ProjectRepository], "projects")
 
-  def generate(project: String) = Action {
+  def generate(project: String) = ProjectAction(project, projects) { r =>
     val options = new RunOptions(withUsage = true, withTypeInference = true)
 
-    val generator = factory forProject project
+    val generator = factory forProject r.project
     val result = Future { generator.run(options) }
     Accepted("Model generation initiated")
   }

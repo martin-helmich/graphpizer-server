@@ -1,10 +1,11 @@
 package domain.modelgeneration.typeinference
 
 import domain.mapper.TypeMapper
+import domain.model.Project
 import persistence.BackendInterface
 import play.api.Logger
 
-class TypeInferer(backend: BackendInterface, typeMapper: TypeMapper) {
+class TypeInferer(backend: BackendInterface, typeMapper: TypeMapper, project: Project) {
 
   val logger = Logger
 
@@ -18,8 +19,9 @@ class TypeInferer(backend: BackendInterface, typeMapper: TypeMapper) {
         """MATCH (var:Expr_Variable{name: "this"})<-[:SUB|HAS*]-(:Stmt_Class)<-[:DEFINED_IN]-(class:Class)<-[:IS]-(type:Type)
            MERGE (var)-[:POSSIBLE_TYPE {confidence: 1}]->(type)"""
       )
+      val additionalStmts = project additionalStmts "preTypeInference" map { _.cypher }
 
-      stmts foreach { cypher =>
+      (stmts ++ additionalStmts) foreach { cypher =>
         Logger.info(s"Executing $cypher")
         backend.execute(cypher).run().close()
         Logger.info("done")
