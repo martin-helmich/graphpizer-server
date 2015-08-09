@@ -72,10 +72,14 @@ define ['angular', '../Application', 'vis'], (angular, app, vis) ->
         console.log element
 
         options =
+          interaction:
+            hideEdgesOnDrag: true
           physics:
+            stabilization: false
             barnesHut:
-              gravitationalConstant: -8000
-              springLength: 150
+              gravitationalConstant: -80000
+              springLength: 200
+              springConstant: 0.01
           nodes:
             shape: 'dot'
             font:

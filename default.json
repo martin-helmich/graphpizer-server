@@ -1,0 +1,3 @@
+{"name":"Default project","slug":"default","additionalTransformations":[
+{"when": "preTypeInference", "cypher": "MATCH (c:Expr_StaticCall {class: \"Coab_Object_Manager\"})-[:SUB{type:\"args\"}]->(:Collection)-[:HAS{ordering:0}]->(:Arg)-[:SUB{type:\"value\"}]->(arg:Scalar_String) WHERE LOWER(c.name) = \"get\" OR LOWER(c.name)=\"create\" MATCH (t:Type {name: arg.value}) MERGE (c)-[:POSSIBLE_TYPE]->(t)"}
+]}

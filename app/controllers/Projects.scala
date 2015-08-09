@@ -11,6 +11,9 @@ import domain.repository.ProjectRepository._
 import play.api.libs.json._
 import play.api.mvc._
 import controllers.helpers.ActionHelpers._
+import play.api.libs.json._
+import play.api.libs.json.Reads._
+import play.api.libs.functional.syntax._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,6 +25,16 @@ class Projects @Inject()(actorSystem: ActorSystem) extends Controller {
   val projectRepository = actorSystem.actorOf(Props[ProjectRepository], "projects")
 
   implicit val timeout = Timeout(1.second)
+
+  implicit val additionalTransformationReads = (
+    (JsPath \ "when").read[String] and
+      (JsPath \ "cypher").read[String]
+    )(Project.AdditionalTransformation.apply _)
+
+  implicit val additionalTransformationWrites = (
+    (JsPath \ "when").write[String] and
+    (JsPath \ "cypher").write[String]
+    )(unlift(Project.AdditionalTransformation.unapply))
 
   class ProjectWrites[T](implicit r: Request[T]) extends Writes[Project] {
     def writes(p: Project) = Json.obj(
@@ -39,26 +52,41 @@ class Projects @Inject()(actorSystem: ActorSystem) extends Controller {
         )
       ),
       "name" -> p.name,
-      "slug" -> p.slug
+      "slug" -> p.slug,
+      "additionalTransformations" -> JsArray(p.additionalTransformations.toSeq.map { t =>
+        Json.obj("when" -> t.when, "cypher" -> t.cypher)
+      })
     )
   }
 
-  class ProjectReads(slug: String) extends Reads[Project] {
-    override def reads(json: JsValue): JsResult[Project] = json match {
-      case o: JsObject =>
-        o \ "name" match {
-          case JsString(n: String) => JsSuccess(Project(slug, n))
-          case _ => JsError("missing-name")
-        }
-      case _ => JsError("not-an-object")
-    }
+  private def buildProjectReads(slug: String): Reads[Project] = {
+    (
+      (JsPath \ "name").read[String] and
+        (JsPath \ "additionalTransformations").read[Seq[Project.AdditionalTransformation]]
+      )((a, b) => new Project(slug, a, b))
   }
+
+//  implicit val projectReads: Reads[Project] =
+
+//  class ProjectReads(slug: String) extends Reads[Project] {
+//    override def reads(json: JsValue): JsResult[Project] = json match {
+//      case o: JsObject =>
+//        o \ "name" match {
+//          case JsString(n: String) => JsSuccess(Project(slug, n))
+//          case _ => JsError("missing-name")
+//        }
+//      case _ => JsError("not-an-object")
+//    }
+//  }
 
   def list = Action.async { implicit r =>
     implicit val projectWrites = new ProjectWrites()
     projectRepository ? ProjectQuery() map {
       case ProjectResponseSet(projects) => Ok(Json.toJson(projects)).withHeaders("X-ObjectCount" -> projects.size.toString)
-      case _ => InternalServerError("Whut?!")
+      case anything => {
+        println(anything)
+        InternalServerError("Whut?!")
+      }
     }
   }
 
@@ -69,15 +97,19 @@ class Projects @Inject()(actorSystem: ActorSystem) extends Controller {
 
   def upsert(slug: String) = Action.async(BodyParsers.parse.json) { implicit r =>
     implicit val projectWrites: Writes[Project] = new ProjectWrites()
-    implicit val projectReads = new ProjectReads(slug)
+    implicit val projectReads = buildProjectReads(slug)
 
     r.body.validate[Project].fold(
-      errors => Future { BadRequest(Json.obj("message" -> JsError.toFlatJson(errors))) },
+      errors => Future {
+        BadRequest(Json.obj("message" -> JsError.toFlatJson(errors)))
+      },
       project => {
         projectRepository ? ProjectQuery(slug = slug, one = true) flatMap {
           case ProjectResponse(p) => projectRepository ? UpdateProject(project) map { r => Ok(Json.toJson(project)) }
           case ProjectEmptyResponse() => projectRepository ? AddProject(project) map { r => Created(Json.toJson(project)) }
-          case _ => Future { InternalServerError(Json.obj("status" -> "ko", "message" -> "Unknown project status")) }
+          case _ => Future {
+            InternalServerError(Json.obj("status" -> "ko", "message" -> "Unknown project status"))
+          }
         }
       }
     )
