@@ -10,8 +10,13 @@ sealed trait ClassLike {
   val name: String
   val namespace: Option[String]
   val methods: Seq[Method]
+//  val packageName: Option[String]
 
-  def fqcn = (namespace map { _ + "\\" } getOrElse "") + name
+  def packageName: Option[String] = None
+
+  def fqcn = (namespace map {
+    _ + "\\"
+  } getOrElse "") + name
 
   def fqcn(namespaceSeparator: String) = (namespace map {
     _.replaceAll(
@@ -38,7 +43,7 @@ class Class(val slug: String,
             val parent: Option[Class] = None,
             val implements: Seq[Interface] = Seq(),
             val usesTraits: Seq[Trait] = Seq(),
-            val usages: Iterable[ClassLike]) extends ClassLike {
+            val usages: Iterable[ClassLike] = Seq()) extends ClassLike {
   def usedClasses: Iterable[ClassLike] = usages
 }
 
@@ -76,7 +81,16 @@ object ClassLike {
       usages = Seq()
     ) {
       override def usedClasses: Iterable[ClassLike] = {
-        (n out ModelEdgeTypes.USES).flatMap { r => r.end.out(ModelEdgeTypes.IS).map { _.end } }.map { c => fromNode(c)}
+        (n out ModelEdgeTypes.USES).flatMap { r => r.end.out(ModelEdgeTypes.IS).map {
+          _.end
+        }
+        }.map { c => fromNode(c) }
+      }
+
+      override def packageName: Option[String] = {
+        (n out ModelEdgeTypes.MEMBER_OF_PACKAGE).headOption.flatMap { r =>
+          r.end.property[String]("name")
+        }
       }
     }
   } else if (n.hasLabel(ModelLabelTypes.Interface)) {
@@ -86,7 +100,13 @@ object ClassLike {
       namespace = n.property[String]("namespace"),
       methods = (n out ModelEdgeTypes.HAS_METHOD).toSeq.map { r => Method.fromNode(r.end) },
       parent = (n out ModelEdgeTypes.EXTENDS).headOption.map { r => fromNode(r.end).asInstanceOf[Interface] }
-    )
+    ) {
+      override def packageName: Option[String] = {
+        (n out ModelEdgeTypes.MEMBER_OF_PACKAGE).headOption.flatMap { r =>
+          r.end.property[String]("name")
+        }
+      }
+    }
   } else if (n.hasLabel(ModelLabelTypes.Trait)) {
     new Trait(
       slug = n.property[String]("slug").getOrElse(""),
@@ -94,9 +114,17 @@ object ClassLike {
       namespace = n.property[String]("namespace"),
       properties = (n out ModelEdgeTypes.HAS_PROPERTY).toSeq.map { r => Property.fromNode(r.end) },
       methods = (n out ModelEdgeTypes.HAS_METHOD).toSeq.map { r => Method.fromNode(r.end) }
-    )
+    ) {
+      override def packageName: Option[String] = {
+        (n out ModelEdgeTypes.MEMBER_OF_PACKAGE).headOption.flatMap { r =>
+          r.end.property[String]("name")
+        }
+      }
+    }
   } else {
-    throw new Exception("Bad node: " + n.getLabels.map { _.name }.mkString(", "))
+    throw new Exception("Bad node: " + n.getLabels.map {
+      _.name
+    }.mkString(", "))
   }
 
 

@@ -22,21 +22,21 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
   private val logger = Logger
 
   def run(): Unit = {
-    val classes: Seq[(Node, Option[Node], String)] = backend transactional { (_, _) =>
-      val cypher = """MATCH (cls:Stmt_Class)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(cls)   RETURN cls   AS cls, ns, "class"     AS type UNION
-                      MATCH (iface:Stmt_Interface) OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(iface) RETURN iface AS cls, ns, "interface" AS type UNION
-                      MATCH (trt:Stmt_Trait)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(trt)   RETURN trt   AS cls, ns, "trait"     AS type"""
+    val classes: Seq[(Node, Option[Node], Option[Node], String)] = backend transactional { (_, _) =>
+      val cypher = """MATCH (cls:Stmt_Class)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(cls)   OPTIONAL MATCH (cls)  <-[:SUB|HAS*]-(:File)<-[:CONTAINS_FILE]-(p:Package) RETURN cls   AS cls, ns, p, "class"     AS type UNION
+                      MATCH (iface:Stmt_Interface) OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(iface) OPTIONAL MATCH (iface)<-[:SUB|HAS*]-(:File)<-[:CONTAINS_FILE]-(p:Package) RETURN iface AS cls, ns, p, "interface" AS type UNION
+                      MATCH (trt:Stmt_Trait)       OPTIONAL MATCH (ns:Stmt_Namespace)-[:SUB|HAS*]->(trt)   OPTIONAL MATCH (trt)  <-[:SUB|HAS*]-(:File)<-[:CONTAINS_FILE]-(p:Package) RETURN trt   AS cls, ns, p, "trait"     AS type"""
 
-      backend execute cypher map { (classStmt: Node, namespaceStmt: Node, kind: String) =>
-        (classStmt, Option(namespaceStmt), kind)
+      backend execute cypher map { (classStmt: Node, namespaceStmt: Node, pkg: Node, kind: String) =>
+        (classStmt, Option(namespaceStmt), Option(pkg), kind)
       }
     }
 
     logger.info("Found " + classes.size + " class-like objects for processing")
 
     classes foreach { m =>
-      logger.info("Processign " + m)
-      val (classStmt: Node, namespaceStmt: Option[Node], kind: String) = m
+      logger.info("Processing " + m)
+      val (classStmt: Node, namespaceStmt: Option[Node], pkg: Option[Node], kind: String) = m
       backend transactional { (_, _) =>
         val label = kind match {
           case "class" => Class
@@ -44,7 +44,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
           case "trait" => Trait
         }
 
-        val classRelations = (classStmt <--< DEFINED_IN map { r => r.end }).toArray
+        val classRelations = (classStmt <--< DEFINED_IN map { r => r.start }).toArray
         val clazz = classRelations.length match {
           case 0 => backend.createNode(label)
           case _ => classRelations(0)
@@ -60,7 +60,7 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
             classStmt.property[String]("name").get
         }
 
-        println(s"Treating class $fqcn")
+        logger.info(s"Treating class $fqcn")
 
         clazz("name") = classStmt("name")
         clazz("slug") = fqcn.toLowerCase.replace("\\", "-")
@@ -82,7 +82,10 @@ class ClassResolver(backend: BackendInterface, docCommentParser: DocCommentParse
         }
 
         clazz --| DEFINED_IN |--> classStmt
+
         mergeDataType(DataType(fqcn, primitive = false)) --| IS |--> clazz
+
+        pkg.foreach { clazz --| MEMBER_OF_PACKAGE |--> _ }
 
         val context = new ImportContextImpl(clazz, clazz.property[String]("namespace"))
 

@@ -34,11 +34,11 @@ class Packages @Inject()(manager: ConnectionManager) extends Controller {
 
   def uml(project: String, pkg: String, format: String = "txt") = Action {
     manager connect project transactional { (b, _) =>
-      val cypher = """MATCH (c)-[:DEFINED_IN]->()<-[:HAS|SUB*]-(:File)<-[:CONTAINS_FILE]-(p:Package {name: {pkg}}) WHERE c:Class OR c:Trait OR c:Interface RETURN c, p.name"""
+      val cypher = """MATCH (c)-[:DEFINED_IN]->()<-[:HAS|SUB*]-(:File)<-[:CONTAINS_FILE]-(p:Package {name: {pkg}}) WHERE c:Class OR c:Trait OR c:Interface RETURN c"""
       val params = Map("pkg" -> pkg)
-      val classes = b execute cypher params params map { (classLike: Node, pkg: String) => ClassLike.fromNode(classLike) }
+      val classes = b execute cypher params params map { (classLike: Node) => ClassLike.fromNode(classLike) }
 
-      val umlconfig = ClassDiagram.DisplayConfiguration(withPackages = true, withUsages = true, includeRelatedClasses = false)
+      val umlconfig = ClassDiagram.DisplayConfiguration(withAutoPackages = false, withPackages = true, withUsages = true, includeRelatedClasses = true)
       val umlcode = ClassDiagram(classes, umlconfig)
 
       format match {

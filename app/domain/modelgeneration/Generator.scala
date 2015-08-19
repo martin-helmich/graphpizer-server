@@ -13,7 +13,10 @@ class Generator(namespaceResolver: NamespaceResolver,
     Logger.info("Run configuration: " + options)
 
     try {
-      //namespaceResolver.run()
+      Logger.info("Starting namespace resolution")
+      namespaceResolver.run()
+
+      Logger.info("Starting class resolution")
       classResolver.run()
 
       if (options.withTypeInference) {

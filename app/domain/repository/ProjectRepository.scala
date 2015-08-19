@@ -141,7 +141,7 @@ class ProjectRepository extends Actor {
     r match {
       case Row(name: String, slug: String) =>
         val additional = SQL"SELECT cypher, when FROM additional_queries WHERE project=$slug"().map { case Row(cypher: String, when: String) =>
-          new AdditionalTransformation(cypher, when)
+          new AdditionalTransformation(when, cypher)
         }.toList
         new Project(slug, name, additional)
     }

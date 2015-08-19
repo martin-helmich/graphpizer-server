@@ -10,6 +10,8 @@ class TypeInferer(backend: BackendInterface, typeMapper: TypeMapper, project: Pr
   val logger = Logger
 
   def run(): Unit = {
+    println(project)
+
     backend transactionalDebug { (_, _) =>
       val stmts = Seq(
         """MATCH (c:Expr_New)-[:SUB{type: "class"}]->(n)
