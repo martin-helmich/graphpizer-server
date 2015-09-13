@@ -24,6 +24,11 @@ Features include:
 - Automatic generation of UML diagrams from PHP code
 - Type inference
 
+Requirements
+------------
+
+- Java 7 (not 6 and not 8). Thanks, Neo4j.
+
 Installation
 ------------
 
@@ -39,7 +44,9 @@ create and run a new GraPHPizer container:
 Use one of the [binary distributions](https://github.com/martin-helmich/graphpizer-server/releases). Alternatively,
 compile using the following steps:
 
-    tbd
+    > activator universal:packageZipTarball
+
+This will create a `.tgz` file in `target/universal` that you can distribute and extract anywhere you like.
 
 ### Development quickstart
 
