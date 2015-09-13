@@ -4,6 +4,11 @@ GraPHPizer: Analytics engine for PHP source code
 **Disclaimer**: This project is actively developed and by no means stable. It is completely undocumented. I refuse to
 take any responsibility for any kind of amok this program might do on your computer and to provide any kind of support.
 
+## Author and License
+
+Martin Helmich  
+This project is [GPL-licensed](LICENSE).
+
 What is GraPHPizer?
 -------------------
 
