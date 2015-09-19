@@ -27,7 +27,14 @@ Features include:
 Requirements
 ------------
 
-- Java 7 (not 6 and not 8). Thanks, Neo4j.
+For operating in production:
+
+- A Java 7 JRE (not 6 and not 8). Thanks, Neo4j.
+
+For development:
+
+- A Java 7 JDK
+- An [Activator](https://www.typesafe.com/activator/download) installation
 
 Installation
 ------------
@@ -41,10 +48,17 @@ create and run a new GraPHPizer container:
 
 ### Production (manual)
 
-Use one of the [binary distributions](https://github.com/martin-helmich/graphpizer-server/releases). Alternatively,
-compile using the following steps:
+#Use one of the [binary distributions](https://github.com/martin-helmich/graphpizer-server/releases).
+Currently, there are no pre-compiled binary versions available. You can compile one yourself using one of the following options:
+
+1.  Package the application into a ZIP file. The resulting ZIP archive will contain the built application with no dependencies (besides a Java JRE) and a `bin/graphpizer-server` executable file
 
     > activator universal:packageZipTarball
+
+2.  Build a DEB or RPM file using one of the following commands:
+
+    > activator debian:packageBin
+    > activator rpm:packageBin
 
 This will create a `.tgz` file in `target/universal` that you can distribute and extract anywhere you like.
 
