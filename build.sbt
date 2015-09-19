@@ -1,3 +1,4 @@
+
 name := """graphpizer-server"""
 
 version := "1.0.0-dev"
@@ -33,3 +34,17 @@ libraryDependencies ++= Seq(
 pipelineStages := Seq(rjs, digest, gzip)
 
 TwirlKeys.templateFormats += ("plantuml" -> "templates.PlantUmlFormat")
+
+maintainer in Linux := "Martin Helmich <kontakt@martin-helmich.de>"
+
+packageSummary in Linux := "PHP code analytics engine"
+
+packageDescription := "GraPHPizer is a PHP source code analytics engine written in Scala"
+
+rpmRelease := "1"
+
+rpmVendor := "https://github.com/martin-helmich"
+
+rpmUrl := Some("https://github.com/martin-helmich/graphpizer-server")
+
+rpmLicense := Some("GPL-3.0")
