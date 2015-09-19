@@ -9,11 +9,12 @@ take any responsibility for any kind of amok this program might do on your compu
 Martin Helmich  
 This project is [GPL-licensed](LICENSE).
 
+**Background:** This project started off as part of my (not-yet-complete) master's thesis in CS at the [University of Appliced Sciences Osnabrück][hsos]. It has proven it's worth there and I'll probably continue to develop and maintain it.
+
 What is GraPHPizer?
 -------------------
 
-GraPHPizer uses graph technologies to offer a source code analytics engine for PHP projects. This includes nifty
-graph visualizations like the following one:
+GraPHPizer uses graph technologies to offer a source code analytics engine for PHP projects. This includes nifty graph visualizations like the following one:
 
 ![Example of GraPHPizer graph visualization](documentation/graphpizer-demo.png)
 
@@ -121,4 +122,5 @@ After installing the GraPHPizer server (this project), you can import any number
 [composer]: http://getcomposer.org
 [composerinstall]: https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx
 [docker]: https://www.docker.com
+[hsos]: https://www.hs-osnabrueck.de/
 [jsonconfig]: https://github.com/martin-helmich/graphpizer-server/wiki/Source-import-configuration
