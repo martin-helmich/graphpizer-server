@@ -52,12 +52,16 @@ Currently, there are no pre-compiled binary versions available. You can compile 
 
 1.  Package the application into a ZIP file. The resulting ZIP archive will contain the built application with no dependencies (besides a Java JRE) and a `bin/graphpizer-server` executable file
 
+    ```shellsession
     > activator universal:packageZipTarball
+    ```
 
 2.  Build a DEB or RPM file using one of the following commands:
 
+    ```shellsession
     > activator debian:packageBin
     > activator rpm:packageBin
+    ```
 
 This will create a `.tgz` file in `target/universal` that you can distribute and extract anywhere you like.
 
