@@ -34,21 +34,20 @@ For operating in production:
 For development:
 
 - A Java 7 JDK
-- An [Activator](https://www.typesafe.com/activator/download) installation
+- An [Activator][activator] installation
 
 Installation
 ------------
 
 ### Production (Docker)
 
-The recommended way to install GraPHPizer is using [Docker](https://www.docker.com). Use the following command to
+The recommended way to install GraPHPizer is using [Docker][docker]. Use the following command to
 create and run a new GraPHPizer container:
 
     docker run --name graphpizer -d -p 9000:9000 -v /var/lib/graphizer martinhelmich/graphpizer-server:latest
 
 ### Production (manual)
 
-#Use one of the [binary distributions](https://github.com/martin-helmich/graphpizer-server/releases).
 Currently, there are no pre-compiled binary versions available. You can compile one yourself using one of the following options:
 
 1.  Package the application into a ZIP file. The resulting ZIP archive will contain the built application with no dependencies (besides a Java JRE) and a `bin/graphpizer-server` executable file
@@ -75,9 +74,9 @@ This will create a `.tgz` file in `target/universal` that you can distribute and
 
 # First steps
 
-After installing the GraPHPizer server (this project), you can import any number of PHP projects. For this, you'll need to install and configure the [graPHPizer CLI](https://github.com/martin-helmich/graphpizer-cli). For this, perform the following steps:
+After installing the GraPHPizer server (this project), you can import any number of PHP projects. For this, you'll need to install and configure the [graPHPizer CLI][cli]. For this, perform the following steps:
 
-1.   Install the graphpizer-cli into your PHP project using [Composer](http://getcomposer.org). If you do not have Composer installed, see the [Composer installation instructions](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx):
+1.   Install the graphpizer-cli into your PHP project using [Composer][composer]. If you do not have Composer installed, see the [Composer installation instructions][composerinstall]:
 
     ```shellsession
     > composer require helmich/graphpizer-cli
@@ -93,7 +92,7 @@ After installing the GraPHPizer server (this project), you can import any number
 
 2.  Create a `.graphpizer.json` configuration file inside your project. There you can configure how the project should be managed in the graPHPizer server.
 
-    See the respective [documentation page](https://github.com/martin-helmich/graphpizer-server/wiki/Source-import-configuration) for more information.
+    See the respective [documentation page][jsonconfig] for more information.
 
 3.  Import the source code into the GraPHPizer server:
 
@@ -112,3 +111,10 @@ After installing the GraPHPizer server (this project), you can import any number
     ```
 
 5.  You can now use the GraPHPizer web UI to explore your project, use the Cypher query language to analyze your model and to generate nice UML diagrams.
+
+[activator]: https://www.typesafe.com/activator/download
+[cli]: https://github.com/martin-helmich/graphpizer-cli
+[composer]: http://getcomposer.org
+[composerinstall]: https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx
+[docker]: https://www.docker.com
+[jsonconfig]: https://github.com/martin-helmich/graphpizer-server/wiki/Source-import-configuration
