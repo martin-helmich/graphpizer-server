@@ -70,12 +70,16 @@ This will create a `.tgz` file in `target/universal` that you can distribute and
 
 1. Clone this repository:
 
-        git clone git://github.com/martin-helmich/graphizer-server.git
+    ```shellsession
+    > git clone git://github.com/martin-helmich/graphpizer-server.git
+    ```
 
 2. Build using Activator:
 
-        cd graphizer-server
-        activator run
+    ```shellsession
+    > cd graphpizer-server
+    > activator run
+    ```
 
 # First steps
 
